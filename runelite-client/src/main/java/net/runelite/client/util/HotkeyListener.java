@@ -42,6 +42,10 @@ public abstract class HotkeyListener implements KeyListener
 	@Override
 	public void keyTyped(KeyEvent e)
 	{
+		if (Keybind.getModifierForKeyCode(e.getKeyCode()) == null && isPressed)
+		{
+			e.consume();
+		}
 	}
 
 	@Override
@@ -49,8 +53,17 @@ public abstract class HotkeyListener implements KeyListener
 	{
 		if (keybind.get().matches(e))
 		{
+			boolean wasPressed = isPressed;
 			isPressed = true;
-			hotkeyPressed();
+			if (wasPressed)
+			{
+				hotkeyPressed();
+			}
+			if (Keybind.getModifierForKeyCode(e.getKeyCode()) == null)
+			{
+				// Only consume non modifier keys
+				e.consume();
+			}
 		}
 	}
 
@@ -61,6 +74,11 @@ public abstract class HotkeyListener implements KeyListener
 		{
 			isPressed = false;
 			hotkeyReleased();
+			if (Keybind.getModifierForKeyCode(e.getKeyCode()) == null)
+			{
+				// Only consume non modifier keys
+				e.consume();
+			}
 		}
 	}
 
