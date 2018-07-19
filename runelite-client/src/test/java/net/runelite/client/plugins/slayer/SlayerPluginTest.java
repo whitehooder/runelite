@@ -199,7 +199,7 @@ public class SlayerPluginTest
 	}
 
 	@Test
-	public void testPoints()
+	public void testPoints1()
 	{
 		ChatMessage chatMessageEvent = new ChatMessage(SERVER, "Perterter", TASK_POINTS, null);
 		slayerPlugin.onChatMessage(chatMessageEvent);
@@ -207,7 +207,7 @@ public class SlayerPluginTest
 		assertEquals(9, slayerPlugin.getStreak());
 		assertEquals("", slayerPlugin.getTaskName());
 		assertEquals(0, slayerPlugin.getAmount());
-		assertEquals(18_000, slayerPlugin.getPoints());
+		assertEquals(500, slayerPlugin.getPoints());
 	}
 
 	@Test

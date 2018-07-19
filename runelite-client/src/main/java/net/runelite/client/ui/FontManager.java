@@ -28,6 +28,7 @@ import javax.swing.text.StyleContext;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
+import java.io.File;
 import java.io.IOException;
 
 public class FontManager
@@ -35,6 +36,7 @@ public class FontManager
 	private static final Font runescapeFont;
 	private static final Font runescapeSmallFont;
 	private static final Font runescapeBoldFont;
+	private static final Font customFont;
 
 	static
 	{
@@ -68,6 +70,11 @@ public class FontManager
 			runescapeBoldFont = StyleContext.getDefaultStyleContext()
 					.getFont(boldFont.getName(), Font.PLAIN, 16);
 			ge.registerFont(runescapeBoldFont);
+
+			customFont = Font.createFont(
+					Font.TRUETYPE_FONT,
+					new File("/usr/share/fonts/cantarell/Cantarell-Regular.otf"))
+				.deriveFont(Font.PLAIN, 12);
 		}
 		catch (FontFormatException ex)
 		{
@@ -92,5 +99,10 @@ public class FontManager
 	public static Font getRunescapeBoldFont()
 	{
 		return runescapeBoldFont;
+	}
+
+	public static Font getCustomFont()
+	{
+		return customFont;
 	}
 }

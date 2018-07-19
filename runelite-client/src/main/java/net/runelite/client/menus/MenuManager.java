@@ -29,12 +29,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -44,12 +40,7 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
-import net.runelite.api.events.MenuEntryAdded;
-import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.events.NpcActionChanged;
-import net.runelite.api.events.PlayerMenuOptionClicked;
-import net.runelite.api.events.PlayerMenuOptionsChanged;
-import net.runelite.api.events.WidgetMenuOptionClicked;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.util.Text;
 
@@ -91,10 +82,14 @@ public class MenuManager
 			return;
 		}
 
-		for (NPC npc : client.getNpcs())
+		log.info("Adding menu option");
+
+		for (NPC npc : client.getCachedNPCs())
 		{
+			if (npc == null) continue;
 			NPCComposition composition = npc.getComposition();
-			addNpcOption(composition, option);
+			if (composition != null)
+				addNpcOption(composition, option);
 		}
 	}
 
@@ -110,11 +105,33 @@ public class MenuManager
 			return;
 		}
 
-		for (NPC npc : client.getNpcs())
+		log.info("Removing menu option");
+
+		for (NPC npc : client.getCachedNPCs())
 		{
+			if (npc == null) continue;
 			NPCComposition composition = npc.getComposition();
-			removeNpcOption(composition, option);
+			if (composition != null)
+				removeNpcOption(composition, option);
 		}
+	}
+
+	@Subscribe
+	public void onNpcSpawned(NpcSpawned event)
+	{
+		log.info("Spawned npc");
+		NPCComposition composition = event.getNpc().getComposition();
+		for (String option : npcMenuOptions)
+			addNpcOption(composition, option);
+	}
+
+	@Subscribe
+	public void onNpcDespawned(NpcDespawned event)
+	{
+		log.info("Despawned npc");
+		NPCComposition composition = event.getNpc().getComposition();
+		for (String option : npcMenuOptions)
+			removeNpcOption(composition, option);
 	}
 
 	/**

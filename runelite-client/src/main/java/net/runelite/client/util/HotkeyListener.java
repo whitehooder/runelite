@@ -55,8 +55,9 @@ public abstract class HotkeyListener implements KeyListener
 		{
 			boolean wasPressed = isPressed;
 			isPressed = true;
-			if (wasPressed)
+			if (!wasPressed)
 			{
+				System.out.println("pressed");
 				hotkeyPressed();
 			}
 			if (Keybind.getModifierForKeyCode(e.getKeyCode()) == null)

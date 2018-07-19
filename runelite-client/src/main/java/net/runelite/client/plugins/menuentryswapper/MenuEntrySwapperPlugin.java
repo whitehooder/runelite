@@ -27,6 +27,7 @@ package net.runelite.client.plugins.menuentryswapper;
 
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Provides;
+
 import java.util.Collection;
 import java.util.Collections;
 import javax.inject.Inject;

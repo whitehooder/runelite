@@ -36,7 +36,8 @@ public enum FontType
 {
 	REGULAR("Regular", FontManager.getRunescapeFont()),
 	BOLD("Bold", FontManager.getRunescapeBoldFont()),
-	SMALL("Small", FontManager.getRunescapeSmallFont());
+	SMALL("Small", FontManager.getRunescapeSmallFont()),
+	CUSTOM("Custom", FontManager.getCustomFont());
 
 	private final String name;
 	private final Font font;
