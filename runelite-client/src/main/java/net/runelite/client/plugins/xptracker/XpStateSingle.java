@@ -220,7 +220,7 @@ class XpStateSingle
 		if (goalEndXp <= 0 || currentXp > goalEndXp)
 		{
 			int currentLevel = Experience.getLevelForXp(currentXp);
-			endLevelExp = currentLevel + 1 <= Experience.MAX_VIRT_LEVEL ? Experience.getXpForLevel(currentLevel + 1) : -1;
+			endLevelExp = currentLevel + 1 <= Experience.MAX_VIRT_LEVEL ? Experience.getXpForLevel(currentLevel + 1) : Experience.MAX_XP;
 		}
 		else
 		{
@@ -239,7 +239,7 @@ class XpStateSingle
 	{
 		return XpSnapshotSingle.builder()
 			.startLevel(Experience.getLevelForXp(startLevelExp))
-			.endLevel(Experience.getLevelForXp(endLevelExp))
+			.endLevel(endLevelExp >= Experience.MAX_XP ? "Max" : "" + Experience.getLevelForXp(endLevelExp))
 			.xpGainedInSession(xpGained)
 			.xpRemainingToGoal(getXpRemaining())
 			.xpPerHour(getXpHr())
