@@ -26,11 +26,6 @@
 
 package net.runelite.client.plugins.grandexchange;
 
-import java.awt.BorderLayout;
-import java.util.concurrent.ScheduledExecutorService;
-import javax.inject.Inject;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -39,6 +34,12 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
+
+import javax.inject.Inject;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 class GrandExchangePanel extends PluginPanel
@@ -58,8 +59,6 @@ class GrandExchangePanel extends PluginPanel
 	@Inject
 	GrandExchangePanel(Client client, ItemManager itemManager, ScheduledExecutorService executor)
 	{
-		super(false);
-
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 

@@ -26,8 +26,10 @@ package net.runelite.client.util;
 
 import com.apple.eawt.Application;
 import com.apple.eawt.FullScreenUtilities;
-import javax.swing.JFrame;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * A class with OSX-specific functions to improve integration.
@@ -42,7 +44,7 @@ public class OSXUtil
 	 */
 	public static void tryEnableFullscreen(JFrame gui)
 	{
-		if (OSType.getOSType() == OSType.MacOS)
+		if (isOSX())
 		{
 			FullScreenUtilities.setWindowCanFullScreen(gui, true);
 			log.debug("Enabled fullscreen on macOS");
@@ -54,11 +56,35 @@ public class OSXUtil
 	 */
 	public static void requestFocus()
 	{
-		if (OSType.getOSType() == OSType.MacOS)
+		if (isOSX())
 		{
 			Application app = Application.getApplication();
 			app.requestForeground(true);
 			log.debug("Requested focus on macOS");
 		}
+	}
+
+	/**
+	 * Requests the fullscreen in a macOS friendly way
+	 */
+	public static boolean toggleFullscreen(final Window window)
+	{
+		if (isOSX())
+		{
+			Application app = Application.getApplication();
+			app.requestToggleFullScreen(window);
+			log.debug("Requested fullscreen on macOS");
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Requests the fullscreen in a macOS friendly way
+	 */
+	public static boolean isOSX()
+	{
+		return OSType.getOSType() == OSType.MacOS;
 	}
 }

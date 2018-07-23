@@ -26,17 +26,28 @@ package net.runelite.client.plugins.config;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.ItemEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.config.*;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.PluginInstantiationException;
+import net.runelite.client.plugins.PluginManager;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.VerticalGapLayout;
+import net.runelite.client.ui.components.ComboBoxListRenderer;
+import net.runelite.client.ui.components.IconButton;
+import net.runelite.client.ui.components.IconTextField;
+import net.runelite.client.util.SwingUtil;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,51 +56,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
-import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JColorChooser;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFormattedTextField;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SpinnerModel;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingConstants;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.config.ChatColorConfig;
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigDescriptor;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
-import net.runelite.client.config.ConfigItemDescriptor;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.config.Keybind;
-import net.runelite.client.config.RuneLiteConfig;
-import net.runelite.client.plugins.Plugin;
-import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.PluginInstantiationException;
-import net.runelite.client.plugins.PluginManager;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
-import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.ui.components.ComboBoxListRenderer;
-import net.runelite.client.ui.components.IconButton;
-import net.runelite.client.ui.components.IconTextField;
-import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 public class ConfigPanel extends PluginPanel
@@ -143,7 +109,6 @@ public class ConfigPanel extends PluginPanel
 	ConfigPanel(PluginManager pluginManager, ConfigManager configManager, ScheduledExecutorService executorService,
 		RuneLiteConfig runeLiteConfig, ChatColorConfig chatColorConfig)
 	{
-		super(false);
 		this.pluginManager = pluginManager;
 		this.configManager = configManager;
 		this.executorService = executorService;
@@ -151,7 +116,7 @@ public class ConfigPanel extends PluginPanel
 		this.chatColorConfig = chatColorConfig;
 
 		searchBar.setIcon(SEARCH);
-		searchBar.setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH - 20, 30));
+		searchBar.setPreferredSize(new Dimension(0, 30));
 		searchBar.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		searchBar.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
 		searchBar.getDocument().addDocumentListener(new DocumentListener()
@@ -179,21 +144,20 @@ public class ConfigPanel extends PluginPanel
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 		topPanel = new JPanel();
-		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+//		topPanel.setBorder(new EmptyBorder(10, 0, 10, 10));
 		topPanel.setLayout(new BorderLayout(0, OFFSET));
 		add(topPanel, BorderLayout.NORTH);
 
-		mainPanel = new FixedWidthPanel();
-		mainPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		mainPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		mainPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		mainPanel = new JPanel();
+//		mainPanel.setBorder(new EmptyBorder(0, 0, 10, 10));
+//		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+//		mainPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		mainPanel.setLayout(new VerticalGapLayout(mainPanel, BoxLayout.Y_AXIS, 5));
+		mainPanel.setMinimumSize(new Dimension(PREFERRED_WIDTH + 10, 0));
 
-		JPanel northPanel = new FixedWidthPanel();
-		northPanel.setLayout(new BorderLayout());
-		northPanel.add(mainPanel, BorderLayout.NORTH);
-
-		scrollPane = new JScrollPane(northPanel);
+		scrollPane = new JScrollPane(mainPanel);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setAutoscrolls(true);
 		add(scrollPane, BorderLayout.CENTER);
 
 		initializePluginList();
@@ -338,7 +302,7 @@ public class ConfigPanel extends PluginPanel
 
 			JPanel item = new JPanel();
 			item.setLayout(new BorderLayout());
-			item.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+			item.setMinimumSize(new Dimension(PREFERRED_WIDTH, 0));
 			name = cid.getItem().name();
 			JLabel configEntryName = new JLabel(name);
 			configEntryName.setForeground(Color.WHITE);
@@ -409,6 +373,7 @@ public class ConfigPanel extends PluginPanel
 
 				colorPicker.setFocusable(false);
 				colorPicker.setBackground(existingColor);
+				JPanel self = this;
 				colorPicker.addMouseListener(new MouseAdapter()
 				{
 					@Override
@@ -431,6 +396,7 @@ public class ConfigPanel extends PluginPanel
 						});
 						parent.add(jColorChooser);
 						parent.pack();
+						parent.setLocationRelativeTo(self);
 						parent.setVisible(true);
 					}
 				});
@@ -537,6 +503,7 @@ public class ConfigPanel extends PluginPanel
 		backButton.addActionListener(e -> openConfigList());
 		mainPanel.add(backButton);
 
+		mainPanel.revalidate();
 		revalidate();
 		scrollPane.getVerticalScrollBar().setValue(0);
 	}
@@ -661,19 +628,9 @@ public class ConfigPanel extends PluginPanel
 		}
 	}
 
-	@Override
-	public Dimension getPreferredSize()
-	{
-		return new Dimension(PANEL_WIDTH + SCROLLBAR_WIDTH, super.getPreferredSize().height);
-	}
-
-	private class FixedWidthPanel extends JPanel
-	{
-		@Override
-		public Dimension getPreferredSize()
-		{
-			return new Dimension(PANEL_WIDTH, super.getPreferredSize().height);
-		}
-
-	}
+//	@Override
+//	public Dimension getPreferredSize()
+//	{
+//		return new Dimension(PREFERRED_PANEL_WIDTH + SCROLLBAR_WIDTH, super.getPreferredSize().height);
+//	}
 }

@@ -24,19 +24,7 @@
  */
 package net.runelite.client.plugins.devtools;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Polygon;
-import java.awt.geom.GeneralPath;
-import java.util.List;
-import javax.inject.Inject;
-import net.runelite.api.Actor;
-import net.runelite.api.Client;
-import net.runelite.api.NPC;
-import net.runelite.api.Perspective;
-import net.runelite.api.Player;
+import net.runelite.api.*;
 import net.runelite.api.Point;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldArea;
@@ -45,6 +33,11 @@ import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayUtil;
+
+import javax.inject.Inject;
+import java.awt.*;
+import java.awt.geom.GeneralPath;
+import java.util.List;
 
 public class SceneOverlay extends Overlay
 {
@@ -253,6 +246,7 @@ public class SceneOverlay extends Overlay
 				lp.getX() + dx * Perspective.LOCAL_TILE_SIZE + dx * Perspective.LOCAL_TILE_SIZE * (area.getWidth() - 1) / 2,
 				lp.getY() + dy * Perspective.LOCAL_TILE_SIZE + dy * Perspective.LOCAL_TILE_SIZE * (area.getHeight() - 1) / 2);
 
+			System.out.println(lp.toString());
 			Polygon poly = Perspective.getCanvasTilePoly(client, lp);
 			if (poly == null)
 			{

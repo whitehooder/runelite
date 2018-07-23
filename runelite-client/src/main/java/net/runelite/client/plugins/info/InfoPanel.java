@@ -29,24 +29,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
-import javax.annotation.Nullable;
-import javax.imageio.ImageIO;
-import javax.inject.Singleton;
-import javax.swing.Box;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.HyperlinkEvent;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.SessionClose;
@@ -54,10 +36,23 @@ import net.runelite.api.events.SessionOpen;
 import net.runelite.client.RuneLiteProperties;
 import net.runelite.client.account.SessionManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.LinkBrowser;
 import net.runelite.client.util.RunnableExceptionLogger;
+
+import javax.annotation.Nullable;
+import javax.imageio.ImageIO;
+import javax.inject.Singleton;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 @Singleton
@@ -118,7 +113,7 @@ public class InfoPanel extends PluginPanel
 		JPanel versionPanel = new JPanel();
 		versionPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		versionPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-		versionPanel.setLayout(new GridLayout(0, 1));
+		versionPanel.setLayout(new DynamicGridLayout(0, 1));
 
 		final Font smallFont = FontManager.getRunescapeSmallFont();
 
@@ -168,7 +163,7 @@ public class InfoPanel extends PluginPanel
 
 		JPanel actionsContainer = new JPanel();
 		actionsContainer.setBorder(new EmptyBorder(10, 0, 0, 0));
-		actionsContainer.setLayout(new GridLayout(4, 1, 0, 10));
+		actionsContainer.setLayout(new DynamicGridLayout(4, 1, 0, 10));
 
 		actionsContainer.add(buildLinkPanel(GITHUB_ICON, "Report an issue or", "make a suggestion", runeLiteProperties.getGithubLink()));
 		actionsContainer.add(buildLinkPanel(DISCORD_ICON, "Talk to us on our", "discord server", runeLiteProperties.getDiscordInvite()));

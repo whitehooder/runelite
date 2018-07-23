@@ -26,24 +26,6 @@
 package net.runelite.client.plugins.farmingtracker;
 
 import com.google.common.base.Strings;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.vars.Autoweed;
@@ -55,6 +37,18 @@ import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 class FarmingTrackerPanel extends PluginPanel
@@ -80,8 +74,6 @@ class FarmingTrackerPanel extends PluginPanel
 		FarmingWorld farmingWorld
 	)
 	{
-		super(false);
-
 		this.client = client;
 		this.itemManager = itemManager;
 		this.configManager = configManager;
@@ -104,7 +96,7 @@ class FarmingTrackerPanel extends PluginPanel
 				@Override
 				public Dimension getPreferredSize()
 				{
-					return new Dimension(PluginPanel.PANEL_WIDTH, super.getPreferredSize().height);
+					return new Dimension(PREFERRED_WIDTH, super.getPreferredSize().height);
 				}
 			};
 			container.setBackground(ColorScheme.DARK_GRAY_COLOR);

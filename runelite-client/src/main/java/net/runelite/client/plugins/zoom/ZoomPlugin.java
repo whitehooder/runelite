@@ -30,11 +30,18 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.VarClientInt;
 import net.runelite.api.events.ConfigChanged;
 import net.runelite.api.events.ScriptCallbackEvent;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.input.MouseListener;
+import net.runelite.client.input.MouseManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+
+import javax.swing.*;
+import java.awt.event.MouseEvent;
 
 @PluginDescriptor(
 	name = "Camera Zoom",
@@ -45,11 +52,24 @@ import net.runelite.client.plugins.PluginDescriptor;
 @Slf4j
 public class ZoomPlugin extends Plugin
 {
+	private MouseListener mouseListener;
+
 	@Inject
 	private Client client;
 
 	@Inject
+	private ClientThread clientThread;
+
+	@Inject
+	private MouseManager mouseManager;
+
+	@Inject
 	private ZoomConfig zoomConfig;
+
+	public static final int DEFAULT_ZOOM = 256, DEFAULT_SLIDER_POS = 334;
+
+	private int zoomValue = DEFAULT_ZOOM, sliderPos = DEFAULT_SLIDER_POS;
+	private boolean zoomEnabled = false;
 
 	@Provides
 	ZoomConfig getConfig(ConfigManager configManager)
@@ -110,11 +130,43 @@ public class ZoomPlugin extends Plugin
 				}
 			}
 		}
+
+		if (DEFAULT_ZOOM != client.getVar(VarClientInt.ZOOM_VALUE))
+			zoomEnabled = true;
 	}
 
 	@Override
 	protected void startUp()
 	{
+		this.mouseListener = new net.runelite.client.input.MouseListener()
+		{
+			@Override
+			public MouseEvent mousePressed(MouseEvent e)
+			{
+				if (e.isControlDown() && SwingUtilities.isMiddleMouseButton(e))
+				{
+					int zoom = client.getVar(VarClientInt.ZOOM_VALUE);
+					if (zoom == DEFAULT_ZOOM)
+						zoomEnabled = false;
+
+					zoomEnabled = !zoomEnabled;
+					if (zoomEnabled)
+					{
+						clientThread.invokeLater(() -> client.runScript(42, zoomValue, sliderPos));
+					}
+					else
+					{
+						zoomValue = client.getVar(VarClientInt.ZOOM_VALUE);
+						sliderPos = client.getVar(VarClientInt.ZOOM_SLIDER_VALUE);
+						clientThread.invokeLater(() -> client.runScript(42, DEFAULT_ZOOM, DEFAULT_SLIDER_POS));
+					}
+					e.consume();
+				}
+				return e;
+			}
+		};
+		mouseManager.registerMouseListener(mouseListener);
+
 		client.setCameraPitchRelaxerEnabled(zoomConfig.relaxCameraPitch());
 	}
 
@@ -122,6 +174,8 @@ public class ZoomPlugin extends Plugin
 	protected void shutDown()
 	{
 		client.setCameraPitchRelaxerEnabled(false);
+		mouseManager.unregisterMouseListener(mouseListener);
+		this.mouseListener = null;
 	}
 
 	@Subscribe

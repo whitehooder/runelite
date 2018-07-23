@@ -27,11 +27,27 @@ package net.runelite.client.plugins.hiscore;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
+import net.runelite.api.Experience;
+import net.runelite.api.Player;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.components.IconTextField;
+import net.runelite.client.ui.components.materialtabs.MaterialTab;
+import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
+import net.runelite.client.util.RunnableExceptionLogger;
+import net.runelite.client.util.StackFormatter;
+import net.runelite.http.api.hiscore.*;
+
+import javax.annotation.Nullable;
+import javax.imageio.ImageIO;
+import javax.inject.Inject;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -40,58 +56,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import javax.annotation.Nullable;
-import javax.imageio.ImageIO;
-import javax.inject.Inject;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.Experience;
-import net.runelite.api.Player;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.FontManager;
-import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.ui.components.IconTextField;
-import net.runelite.client.ui.components.materialtabs.MaterialTab;
-import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
-import net.runelite.client.util.RunnableExceptionLogger;
-import net.runelite.client.util.StackFormatter;
-import net.runelite.http.api.hiscore.HiscoreClient;
-import net.runelite.http.api.hiscore.HiscoreEndpoint;
-import net.runelite.http.api.hiscore.HiscoreResult;
-import net.runelite.http.api.hiscore.HiscoreSkill;
-import static net.runelite.http.api.hiscore.HiscoreSkill.AGILITY;
-import static net.runelite.http.api.hiscore.HiscoreSkill.ATTACK;
-import static net.runelite.http.api.hiscore.HiscoreSkill.BOUNTY_HUNTER_HUNTER;
-import static net.runelite.http.api.hiscore.HiscoreSkill.BOUNTY_HUNTER_ROGUE;
-import static net.runelite.http.api.hiscore.HiscoreSkill.CLUE_SCROLL_ALL;
-import static net.runelite.http.api.hiscore.HiscoreSkill.CONSTRUCTION;
-import static net.runelite.http.api.hiscore.HiscoreSkill.COOKING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.CRAFTING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.DEFENCE;
-import static net.runelite.http.api.hiscore.HiscoreSkill.FARMING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.FIREMAKING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.FISHING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.FLETCHING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.HERBLORE;
-import static net.runelite.http.api.hiscore.HiscoreSkill.HITPOINTS;
-import static net.runelite.http.api.hiscore.HiscoreSkill.HUNTER;
-import static net.runelite.http.api.hiscore.HiscoreSkill.LAST_MAN_STANDING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.MAGIC;
-import static net.runelite.http.api.hiscore.HiscoreSkill.MINING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.OVERALL;
-import static net.runelite.http.api.hiscore.HiscoreSkill.PRAYER;
-import static net.runelite.http.api.hiscore.HiscoreSkill.RANGED;
-import static net.runelite.http.api.hiscore.HiscoreSkill.RUNECRAFT;
-import static net.runelite.http.api.hiscore.HiscoreSkill.SLAYER;
-import static net.runelite.http.api.hiscore.HiscoreSkill.SMITHING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.STRENGTH;
-import static net.runelite.http.api.hiscore.HiscoreSkill.THIEVING;
-import static net.runelite.http.api.hiscore.HiscoreSkill.WOODCUTTING;
-import net.runelite.http.api.hiscore.Skill;
+
+import static net.runelite.http.api.hiscore.HiscoreSkill.*;
 
 @Slf4j
 public class HiscorePanel extends PluginPanel
@@ -216,7 +182,7 @@ public class HiscorePanel extends PluginPanel
 		c.gridy++;
 
 		tabGroup = new MaterialTabGroup();
-		tabGroup.setLayout(new GridLayout(1, 5, 7, 7));
+		tabGroup.setLayout(new DynamicGridLayout(1, 5, 7, 7));
 
 		for (HiscoreEndpoint endpoint : HiscoreEndpoint.values())
 		{

@@ -24,11 +24,11 @@
  */
 package net.runelite.client.ui;
 
-import java.awt.Frame;
-import java.awt.Rectangle;
-import javax.swing.JFrame;
 import lombok.Setter;
 import net.runelite.client.config.ExpandResizeType;
+
+import javax.swing.*;
+import java.awt.*;
 
 public class ContainableFrame extends JFrame
 {
@@ -134,8 +134,6 @@ public class ContainableFrame extends JFrame
 
 			setBounds(newWindowX, getY(), newWindowWidth, getHeight());
 		}
-
-		revalidateMinimumSize();
 	}
 
 	/**
@@ -171,6 +169,8 @@ public class ContainableFrame extends JFrame
 
 		setBounds(newWindowX, getY(), newWindowWidth, getHeight());
 		expandedClientOppositeDirection = false;
+
+		revalidateMinimumSize();
 	}
 
 	/**

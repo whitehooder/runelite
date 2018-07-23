@@ -24,29 +24,24 @@
  */
 package net.runelite.client.plugins.config;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridLayout;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import javax.annotation.Nullable;
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import lombok.Getter;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigDescriptor;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.IconButton;
 import net.runelite.client.util.SwingUtil;
 import org.apache.commons.text.similarity.JaroWinklerDistance;
+
+import javax.annotation.Nullable;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 class PluginListItem extends JPanel
 {
@@ -139,7 +134,8 @@ class PluginListItem extends JPanel
 		Collections.addAll(keywords, tags);
 
 		setLayout(new BorderLayout(3, 0));
-		setPreferredSize(new Dimension(PluginPanel.PANEL_WIDTH, 20));
+		setPreferredSize(new Dimension(0, 20));
+		setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
 
 		JLabel nameLabel = new JLabel(name);
 		nameLabel.setForeground(Color.WHITE);

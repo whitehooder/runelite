@@ -24,13 +24,14 @@
  */
 package net.runelite.client.ui;
 
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.LayoutManager2;
+import lombok.AccessLevel;
+import lombok.Getter;
+import org.pushingpixels.substance.internal.utils.SubstanceTitlePaneUtilities;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.JPanel;
 
 /**
  * Client title toolbar component.
@@ -40,6 +41,7 @@ class ClientTitleToolbar extends JPanel
 	static final int TITLEBAR_SIZE = 23;
 	private static final int ITEM_PADDING = 4;
 
+	@Getter(AccessLevel.PACKAGE)
 	private final Map<NavigationButton, Component> componentMap = new HashMap<>();
 
 	/**
@@ -47,7 +49,9 @@ class ClientTitleToolbar extends JPanel
 	 */
 	ClientTitleToolbar()
 	{
-		// The only other layout manager that would manage it's preferred size without padding
+		putClientProperty(SubstanceTitlePaneUtilities.EXTRA_COMPONENT_KIND, SubstanceTitlePaneUtilities.ExtraComponentKind.TRAILING);
+
+		// The only other layout manager that would manage its preferred size without padding
 		// was the GroupLayout manager, which doesn't work with dynamic layouts like this one.
 		// Primarily, it would not remove components unless it was immediately repainted.
 		setLayout(new LayoutManager2()

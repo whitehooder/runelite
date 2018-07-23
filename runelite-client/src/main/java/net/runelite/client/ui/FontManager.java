@@ -24,19 +24,22 @@
  */
 package net.runelite.client.ui;
 
+import lombok.Getter;
+
 import javax.swing.text.StyleContext;
-import java.awt.Font;
-import java.awt.FontFormatException;
-import java.awt.GraphicsEnvironment;
-import java.io.File;
+import java.awt.*;
 import java.io.IOException;
 
 public class FontManager
 {
+	@Getter
 	private static final Font runescapeFont;
+	@Getter
 	private static final Font runescapeSmallFont;
+	@Getter
 	private static final Font runescapeBoldFont;
-	private static final Font customFont;
+//	@Getter
+//	private static final Font customFont;
 
 	static
 	{
@@ -71,10 +74,10 @@ public class FontManager
 					.getFont(boldFont.getName(), Font.PLAIN, 16);
 			ge.registerFont(runescapeBoldFont);
 
-			customFont = Font.createFont(
-					Font.TRUETYPE_FONT,
-					new File("/usr/share/fonts/cantarell/Cantarell-Regular.otf"))
-				.deriveFont(Font.PLAIN, 12);
+//			customFont = Font.createFont(
+//					Font.TRUETYPE_FONT,
+//					new File("/usr/share/fonts/cantarell/Cantarell-Regular.otf"))
+//				.deriveFont(Font.PLAIN, 12);
 		}
 		catch (FontFormatException ex)
 		{
@@ -84,25 +87,5 @@ public class FontManager
 		{
 			throw new RuntimeException("Font file not found.", ex);
 		}
-	}
-
-	public static Font getRunescapeFont()
-	{
-		return runescapeFont;
-	}
-
-	public static Font getRunescapeSmallFont()
-	{
-		return runescapeSmallFont;
-	}
-
-	public static Font getRunescapeBoldFont()
-	{
-		return runescapeBoldFont;
-	}
-
-	public static Font getCustomFont()
-	{
-		return customFont;
 	}
 }

@@ -24,8 +24,11 @@
  */
 package net.runelite.client.config;
 
-import java.awt.Dimension;
 import net.runelite.api.Constants;
+
+import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 @ConfigGroup("runelite")
 public interface RuneLiteConfig extends Config
@@ -75,12 +78,12 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "rememberScreenBounds",
-		name = "Remember client position",
-		description = "Save the position and size of the client after exiting",
+		keyName = "rememberClientState",
+		name = "Remember client state",
+		description = "Save the position, size and sidebar visibility of the client after exiting",
 		position = 14
 	)
-	default boolean rememberScreenBounds()
+	default boolean rememberClientState()
 	{
 		return true;
 	}
@@ -89,7 +92,6 @@ public interface RuneLiteConfig extends Config
 		keyName = "uiEnableCustomChrome",
 		name = "Enable custom window chrome",
 		description = "Use Runelite's custom window title and borders.",
-		warning = "Please restart your client after changing this setting",
 		position = 15
 	)
 	default boolean enableCustomChrome()
@@ -239,4 +241,22 @@ public interface RuneLiteConfig extends Config
 	{
 		return 35;
 	}
+
+	@ConfigItem(
+			keyName = "sidebarToggleHotkey",
+			name = "Toggle sidebar",
+			description = "Pressing this key combination will hide or show the sidebar.",
+			position = 35
+	)
+	default Keybind sidebarToggleHotkey()
+	{ return new Keybind(KeyEvent.VK_F1, InputEvent.CTRL_DOWN_MASK); }
+
+	@ConfigItem(
+			keyName = "fullscreenToggleHotkey",
+			name = "Toggle fullscreen",
+			description = "Pressing this key combination will enable or disable fullscreen mode.",
+			position = 36
+	)
+	default Keybind fullscreenToggleHotkey()
+	{ return new Keybind(KeyEvent.VK_F11, InputEvent.CTRL_DOWN_MASK); }
 }

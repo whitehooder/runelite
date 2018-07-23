@@ -34,7 +34,9 @@ import lombok.Getter;
 @Getter
 public enum VarClientInt
 {
-	TOOLTIP_TIMEOUT(1);
+	TOOLTIP_TIMEOUT(1),
+	ZOOM_VALUE(73),
+	ZOOM_SLIDER_VALUE(74);
 
 	private final int index;
 }

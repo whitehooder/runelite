@@ -24,14 +24,15 @@
  */
 package net.runelite.client.ui;
 
-import java.applet.Applet;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import javax.annotation.Nullable;
-import javax.swing.JPanel;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
+import org.pushingpixels.substance.internal.SubstanceSynapse;
+
+import javax.annotation.Nullable;
+import javax.swing.*;
+import java.applet.Applet;
+import java.awt.*;
 
 @Slf4j
 final class ClientPanel extends JPanel
@@ -42,7 +43,8 @@ final class ClientPanel extends JPanel
 		setMinimumSize(Constants.GAME_FIXED_SIZE);
 		setPreferredSize(Constants.GAME_FIXED_SIZE);
 		setLayout(new BorderLayout());
-		setBackground(Color.black);
+		putClientProperty(SubstanceSynapse.COLORIZATION_FACTOR, 1.0);
+		setBackground(Color.BLACK);
 
 		if (client == null)
 		{
