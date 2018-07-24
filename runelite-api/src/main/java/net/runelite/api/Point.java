@@ -32,6 +32,12 @@ public class Point
 	private final int x;
 	private final int y;
 
+	public Point(java.awt.Point point)
+	{
+		this.x = point.x;
+		this.y = point.y;
+	}
+
 	public Point(int x, int y)
 	{
 		this.x = x;

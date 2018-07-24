@@ -24,13 +24,13 @@
  */
 package net.runelite.client.ui;
 
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.LayoutManager2;
+import lombok.AccessLevel;
+import lombok.Getter;
+
+import javax.swing.*;
+import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.JPanel;
 
 /**
  * Client title toolbar component.
@@ -40,6 +40,7 @@ class ClientTitleToolbar extends JPanel
 	static final int TITLEBAR_SIZE = 23;
 	private static final int ITEM_PADDING = 4;
 
+	@Getter(AccessLevel.PACKAGE)
 	private final Map<NavigationButton, Component> componentMap = new HashMap<>();
 
 	/**

@@ -31,11 +31,6 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import java.io.File;
-import java.util.Locale;
-import javax.annotation.Nullable;
-import javax.inject.Provider;
-import javax.inject.Singleton;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -65,6 +60,12 @@ import net.runelite.client.ui.overlay.worldmap.WorldMapOverlay;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import javax.annotation.Nullable;
+import javax.inject.Provider;
+import javax.inject.Singleton;
+import java.io.File;
+import java.util.Locale;
+
 @Singleton
 @Slf4j
 public class RuneLite
@@ -74,6 +75,9 @@ public class RuneLite
 	public static final File SCREENSHOT_DIR = new File(RUNELITE_DIR, "screenshots");
 	private static final File LOGS_DIR = new File(RUNELITE_DIR, "logs");
 	private static final File LOGS_FILE_NAME = new File(LOGS_DIR, "application");
+
+	@Getter
+	private ClientUpdateCheckMode updateMode;
 
 	@Getter
 	private static Injector injector;

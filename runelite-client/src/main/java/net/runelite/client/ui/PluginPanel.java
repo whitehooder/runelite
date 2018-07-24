@@ -24,18 +24,17 @@
  */
 package net.runelite.client.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.border.EmptyBorder;
 import lombok.AccessLevel;
 import lombok.Getter;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 
 public abstract class PluginPanel extends JPanel
 {
 	public static final int PANEL_WIDTH = 225;
+	public static final int BORDER_WIDTH = 10;
 	private static final int SCROLLBAR_WIDTH = 17;
 	private static final int OFFSET = 6;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(OFFSET, OFFSET, OFFSET, OFFSET);

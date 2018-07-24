@@ -27,29 +27,6 @@ package net.runelite.client.config;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.eventbus.EventBus;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.ConfigChanged;
 import net.runelite.client.RuneLite;
@@ -57,6 +34,19 @@ import net.runelite.client.account.AccountSession;
 import net.runelite.http.api.config.ConfigClient;
 import net.runelite.http.api.config.ConfigEntry;
 import net.runelite.http.api.config.Configuration;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.awt.*;
+import java.io.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.time.Instant;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
@@ -416,33 +406,34 @@ public class ConfigManager
 				continue;
 			}
 
-			String current = getConfiguration(group.value(), item.keyName());
-			String valueString = objectToString(defaultValue);
-			if (Objects.equals(current, valueString))
+			if (defaultValue == null)
+				unsetConfiguration(group.value(), item.keyName());
+			else
 			{
-				continue; // already set to the default value
+				String current = getConfiguration(group.value(), item.keyName());
+				String valueString = objectToString(defaultValue);
+				if (Objects.equals(current, valueString))
+				{
+					continue; // already set to the default value
+				}
+
+				log.debug("Setting default configuration value for {}.{} to {}", group.value(), item.keyName(), defaultValue);
+
+				setConfiguration(group.value(), item.keyName(), valueString);
 			}
-
-			log.debug("Setting default configuration value for {}.{} to {}", group.value(), item.keyName(), defaultValue);
-
-			setConfiguration(group.value(), item.keyName(), valueString);
 		}
 	}
 
 	static Object stringToObject(String str, Class<?> type)
 	{
-		if (type == boolean.class)
-		{
+		if (type == boolean.class || type == Boolean.class)
 			return Boolean.parseBoolean(str);
-		}
-		if (type == int.class)
-		{
+		if (type == int.class || type == Integer.class)
 			return Integer.parseInt(str);
-		}
+		if (type == double.class || type == Double.class)
+			return Double.parseDouble(str);
 		if (type == Color.class)
-		{
 			return Color.decode(str);
-		}
 		if (type == Dimension.class)
 		{
 			String[] splitStr = str.split("x");
@@ -467,13 +458,9 @@ public class ConfigManager
 			return new Rectangle(x, y, width, height);
 		}
 		if (type.isEnum())
-		{
 			return Enum.valueOf((Class<? extends Enum>) type, str);
-		}
 		if (type == Instant.class)
-		{
 			return Instant.parse(str);
-		}
 		if (type == Keybind.class)
 		{
 			String[] splitStr = str.split(":");
@@ -481,19 +468,27 @@ public class ConfigManager
 			int mods = Integer.parseInt(splitStr[1]);
 			return new Keybind(code, mods);
 		}
+
+		if (Class.class.isAssignableFrom(type))
+		{
+			try
+			{
+				return Class.forName(str);
+			}
+			catch (ClassNotFoundException e)
+			{
+				return null;
+			}
+		}
 		return str;
 	}
 
 	static String objectToString(Object object)
 	{
 		if (object instanceof Color)
-		{
 			return String.valueOf(((Color) object).getRGB());
-		}
 		if (object instanceof Enum)
-		{
 			return ((Enum) object).name();
-		}
 		if (object instanceof Dimension)
 		{
 			Dimension d = (Dimension) object;
@@ -510,14 +505,16 @@ public class ConfigManager
 			return r.x + ":" + r.y + ":" + r.width + ":" + r.height;
 		}
 		if (object instanceof Instant)
-		{
 			return ((Instant) object).toString();
-		}
 		if (object instanceof Keybind)
 		{
 			Keybind k = (Keybind) object;
 			return k.getKeyCode() + ":" + k.getModifiers();
 		}
+		if (object instanceof String)
+			return (String) object;
+		if (object instanceof Class)
+			return ((Class) object).getName();
 		return object.toString();
 	}
 }

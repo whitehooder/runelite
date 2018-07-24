@@ -24,12 +24,26 @@
  */
 package net.runelite.client.config;
 
-import java.awt.Dimension;
 import net.runelite.api.Constants;
+import net.runelite.client.plugins.info.InfoPanel;
+import net.runelite.client.ui.PluginPanel;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 @ConfigGroup("runelite")
 public interface RuneLiteConfig extends Config
 {
+	String CONFIG_GROUP = "runelite";
+	String CLIENT_BOUNDS = "clientBounds";
+	String CLIENT_EXTENDED_STATE = "clientExtendedState";
+	String CLIENT_DIVIDER_LOCATION = "clientDividerLocation";
+	String CLIENT_FULLSCREEN = "clientFullscreen";
+	String SIDEBAR_STATE = "sidebarState";
+	String SIDEBAR_SELECTED_TAB = "sidebarSelectedTab";
+
 	@ConfigItem(
 		keyName = "gameSize",
 		name = "Game size",
@@ -75,12 +89,12 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "rememberScreenBounds",
-		name = "Remember client position",
-		description = "Save the position and size of the client after exiting",
+		keyName = "rememberClientState",
+		name = "Remember client state",
+		description = "Save the position, size and sidebar visibility of the client after exiting",
 		position = 14
 	)
-	default boolean rememberScreenBounds()
+	default boolean rememberClientState()
 	{
 		return true;
 	}
@@ -89,7 +103,6 @@ public interface RuneLiteConfig extends Config
 		keyName = "uiEnableCustomChrome",
 		name = "Enable custom window chrome",
 		description = "Use Runelite's custom window title and borders.",
-		warning = "Please restart your client after changing this setting",
 		position = 15
 	)
 	default boolean enableCustomChrome()
@@ -239,4 +252,124 @@ public interface RuneLiteConfig extends Config
 	{
 		return 35;
 	}
+
+	@ConfigItem(
+		keyName = "sidebarToggleHotkey",
+		name = "Toggle sidebar",
+		description = "Pressing this key combination will hide or show the sidebar.",
+		position = 35
+	)
+	default Keybind sidebarToggleHotkey()
+	{ return new Keybind(KeyEvent.VK_F1, InputEvent.CTRL_DOWN_MASK); }
+
+	@ConfigItem(
+		keyName = "fullscreenToggleHotkey",
+		name = "Toggle fullscreen",
+		description = "Pressing this key combination will enable or disable fullscreen mode.",
+		position = 36
+	)
+	default Keybind fullscreenToggleHotkey()
+	{ return new Keybind(KeyEvent.VK_F11, InputEvent.CTRL_DOWN_MASK); }
+
+	@ConfigItem(
+		keyName = CLIENT_BOUNDS,
+		name = "The stored client bounds.",
+		description = "The stored client location and dimensions.",
+		hidden = true
+	)
+	default Rectangle storedClientBounds()
+	{ return null; }
+
+	@ConfigItem(
+		keyName = CLIENT_BOUNDS,
+		name = "Store new client bounds.",
+		description = "Updates the stored client location and dimensions.",
+		hidden = true
+	)
+	void storeClientBounds(Rectangle bounds);
+
+	@ConfigItem(
+		keyName = CLIENT_EXTENDED_STATE,
+		name = "The stored client extended state.",
+		description = "The stored client window maximize state.",
+		hidden = true
+	)
+	default int storedClientExtendedState()
+	{ return JFrame.NORMAL; }
+
+	@ConfigItem(
+		keyName = CLIENT_EXTENDED_STATE,
+		name = "Store new client extended state.",
+		description = "Updates the stored client window maximize state.",
+		hidden = true
+	)
+	void storeClientExtendedState(Integer extendedState);
+
+	@ConfigItem(
+		keyName = CLIENT_DIVIDER_LOCATION,
+		name = "The stored SplitPane divider position.",
+		description = "The stored split pane's divider state.",
+		hidden = true
+	)
+	default Integer storedClientDividerLocation()
+	{ return null; }
+
+	@ConfigItem(
+		keyName = CLIENT_DIVIDER_LOCATION,
+		name = "Store new SplitPane divider position.",
+		description = "Updates the stored split pane's divider state.",
+		hidden = true
+	)
+	void storeClientDividerLocation(Integer dividerPosition);
+
+	@ConfigItem(
+		keyName = CLIENT_FULLSCREEN,
+		name = "The fullscreen state.",
+		description = "The stored client fullscreen state.",
+		hidden = true
+	)
+	default boolean storedClientFullscreenState()
+	{ return false; }
+
+	@ConfigItem(
+		keyName = CLIENT_FULLSCREEN,
+		name = "Store new fullscreen state.",
+		description = "Update the stored client fullscreen state.",
+		hidden = true
+	)
+	void storeClientFullscreenState(Boolean fullscreenEnabled);
+
+	@ConfigItem(
+		keyName = SIDEBAR_STATE,
+		name = "The stored sidebar state.",
+		description = "The sidebar's visibility last launch.",
+		hidden = true
+	)
+	default boolean storedSidebarState()
+	{ return true; }
+
+	@ConfigItem(
+		keyName = SIDEBAR_STATE,
+		name = "Store new sidebar state.",
+		description = "Update the sidebar's visibility.",
+		hidden = true
+	)
+	void storeSidebarState(Boolean sidebarEnabled);
+
+	@ConfigItem(
+		keyName = SIDEBAR_SELECTED_TAB,
+		name = "The stored selected tab.",
+		description = "The tab selected when the client last closed.",
+		hidden = true
+	)
+	default Class<? extends PluginPanel> storedSidebarSelectedTab()
+	{ return InfoPanel.class; }
+
+	@ConfigItem(
+			keyName = SIDEBAR_SELECTED_TAB,
+			name = "Store currently selected tab.",
+			description = "Update the stored selected tab.",
+			hidden = true
+	)
+	void storeSidebarSelectedTab(Class<? extends PluginPanel> selectedTabPanel);
 }
