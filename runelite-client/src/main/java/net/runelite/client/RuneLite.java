@@ -246,6 +246,9 @@ public class RuneLite
 		// Initialize UI
 		clientUI.open(this);
 
+		// Initialize chat colors
+		chatMessageManager.loadColors();
+
 		// Initialize Discord service
 		discordService.init();
 
