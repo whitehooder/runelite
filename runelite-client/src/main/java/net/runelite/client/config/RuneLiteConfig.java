@@ -24,36 +24,46 @@
  */
 package net.runelite.client.config;
 
-import net.runelite.api.Constants;
-import net.runelite.client.plugins.info.InfoPanel;
-import net.runelite.client.ui.PluginPanel;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Rectangle;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import javax.swing.JFrame;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.types.GameSize;
 
 @ConfigGroup("runelite")
 public interface RuneLiteConfig extends Config
 {
 	String CONFIG_GROUP = "runelite";
+	String GAME_SIZE = "gameSize";
+	String ALWAYS_ON_TOP = "gameAlwaysOnTop";
+	String LOCK_WINDOW_SIZE = "lockWindowSize";
+	String ENABLE_CUSTOM_CHROME = "uiEnableCustomChrome";
+	String CONTAIN_IN_SCREEN = "containInScreen";
 	String CLIENT_BOUNDS = "clientBounds";
 	String CLIENT_EXTENDED_STATE = "clientExtendedState";
-	String CLIENT_DIVIDER_LOCATION = "clientDividerLocation";
 	String CLIENT_FULLSCREEN = "clientFullscreen";
 	String SIDEBAR_STATE = "sidebarState";
 	String SIDEBAR_SELECTED_TAB = "sidebarSelectedTab";
+	String SIDEBAR_WIDTH = "sidebarWidth";
 
 	@ConfigItem(
-		keyName = "gameSize",
+		keyName = GAME_SIZE,
 		name = "Game size",
 		description = "The game will resize to this resolution upon starting the client",
 		position = 10
 	)
-	default Dimension gameSize()
+	default GameSize gameSize()
 	{
-		return Constants.GAME_FIXED_SIZE;
+		return new GameSize();
 	}
+
+	@ConfigItem(
+		keyName = GAME_SIZE,
+		name = "Game size",
+		description = "The game will resize to this resolution upon starting the client"
+	)
+	void gameSize(GameSize gameSize);
 
 	@ConfigItem(
 		keyName = "automaticResizeType",
@@ -67,7 +77,7 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "lockWindowSize",
+		keyName = LOCK_WINDOW_SIZE,
 		name = "Lock window size",
 		description = "Determines if the window resizing is allowed or not",
 		position = 12
@@ -78,7 +88,7 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "containInScreen",
+		keyName = CONTAIN_IN_SCREEN,
 		name = "Contain in screen",
 		description = "Makes the client stay contained in the screen when attempted to move out of it.<br>Note: Only works if custom chrome is enabled.",
 		position = 13
@@ -100,7 +110,7 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "uiEnableCustomChrome",
+		keyName = ENABLE_CUSTOM_CHROME,
 		name = "Enable custom window chrome",
 		description = "Use Runelite's custom window title and borders.",
 		position = 15
@@ -111,7 +121,7 @@ public interface RuneLiteConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "gameAlwaysOnTop",
+		keyName = ALWAYS_ON_TOP,
 		name = "Enable client always on top",
 		description = "The game will always be on the top of the screen",
 		position = 16
@@ -273,7 +283,7 @@ public interface RuneLiteConfig extends Config
 
 	@ConfigItem(
 		keyName = CLIENT_BOUNDS,
-		name = "The stored client bounds.",
+		name = "Stored client bounds.",
 		description = "The stored client location and dimensions.",
 		hidden = true
 	)
@@ -290,7 +300,7 @@ public interface RuneLiteConfig extends Config
 
 	@ConfigItem(
 		keyName = CLIENT_EXTENDED_STATE,
-		name = "The stored client extended state.",
+		name = "Stored client extended state.",
 		description = "The stored client window maximize state.",
 		hidden = true
 	)
@@ -304,23 +314,6 @@ public interface RuneLiteConfig extends Config
 		hidden = true
 	)
 	void storeClientExtendedState(Integer extendedState);
-
-	@ConfigItem(
-		keyName = CLIENT_DIVIDER_LOCATION,
-		name = "The stored SplitPane divider position.",
-		description = "The stored split pane's divider state.",
-		hidden = true
-	)
-	default Integer storedClientDividerLocation()
-	{ return null; }
-
-	@ConfigItem(
-		keyName = CLIENT_DIVIDER_LOCATION,
-		name = "Store new SplitPane divider position.",
-		description = "Updates the stored split pane's divider state.",
-		hidden = true
-	)
-	void storeClientDividerLocation(Integer dividerPosition);
 
 	@ConfigItem(
 		keyName = CLIENT_FULLSCREEN,
@@ -363,13 +356,30 @@ public interface RuneLiteConfig extends Config
 		hidden = true
 	)
 	default Class<? extends PluginPanel> storedSidebarSelectedTab()
-	{ return InfoPanel.class; }
+	{ return null; }
 
 	@ConfigItem(
-			keyName = SIDEBAR_SELECTED_TAB,
-			name = "Store currently selected tab.",
-			description = "Update the stored selected tab.",
-			hidden = true
+		keyName = SIDEBAR_SELECTED_TAB,
+		name = "Store currently selected tab.",
+		description = "Update the stored selected tab.",
+		hidden = true
 	)
 	void storeSidebarSelectedTab(Class<? extends PluginPanel> selectedTabPanel);
+
+	@ConfigItem(
+		keyName = SIDEBAR_WIDTH,
+		name = "Stored sidebar width.",
+		description = "The stored split pane's divider state.",
+		hidden = true
+	)
+	default Integer storedSidebarWidth()
+	{ return 225; }
+
+	@ConfigItem(
+		keyName = SIDEBAR_WIDTH,
+		name = "Store new SplitPane divider position.",
+		description = "Updates the stored split pane's divider state.",
+		hidden = true
+	)
+	void storeSidebarWidth(Integer width);
 }

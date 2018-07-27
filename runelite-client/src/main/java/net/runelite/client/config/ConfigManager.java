@@ -27,6 +27,29 @@ package net.runelite.client.config;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.eventbus.EventBus;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.ConfigChanged;
 import net.runelite.client.RuneLite;
@@ -34,19 +57,6 @@ import net.runelite.client.account.AccountSession;
 import net.runelite.http.api.config.ConfigClient;
 import net.runelite.http.api.config.ConfigEntry;
 import net.runelite.http.api.config.Configuration;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.awt.*;
-import java.io.*;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-import java.time.Instant;
-import java.util.*;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
@@ -424,7 +434,7 @@ public class ConfigManager
 		}
 	}
 
-	static Object stringToObject(String str, Class<?> type)
+	static Object stringToObject(String str, Class<?> type) throws Exception
 	{
 		if (type == boolean.class || type == Boolean.class)
 			return Boolean.parseBoolean(str);
@@ -434,12 +444,31 @@ public class ConfigManager
 			return Double.parseDouble(str);
 		if (type == Color.class)
 			return Color.decode(str);
-		if (type == Dimension.class)
+		if (Dimension.class.isAssignableFrom(type))
 		{
 			String[] splitStr = str.split("x");
 			int width = Integer.parseInt(splitStr[0]);
 			int height = Integer.parseInt(splitStr[1]);
-			return new Dimension(width, height);
+
+			try
+			{
+				Object object = type
+					.getConstructor(int.class, int.class)
+					.newInstance(width, height);
+				return object;
+			}
+			catch (IllegalAccessException e)
+			{
+				throw new ConfigLoadingException("constructor(int width, int height) is inaccessible", type, e);
+			}
+			catch (NoSuchMethodException e)
+			{
+				throw new ConfigLoadingException("No constructor(int width, int height) found", type, e);
+			}
+			catch (Exception e)
+			{
+				throw new ConfigLoadingException(null, type, e);
+			}
 		}
 		if (type == Point.class)
 		{
@@ -516,5 +545,15 @@ public class ConfigManager
 		if (object instanceof Class)
 			return ((Class) object).getName();
 		return object.toString();
+	}
+}
+
+class ConfigLoadingException extends Exception
+{
+	ConfigLoadingException(String errorMessage, Class<?> type, Exception underlyingException)
+	{
+		super("Failed to load config of type: " + type.getName() +
+			(errorMessage != null ? "\n" + errorMessage : ""),
+			underlyingException);
 	}
 }

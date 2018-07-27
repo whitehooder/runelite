@@ -27,42 +27,59 @@ package net.runelite.client.ui;
 import java.applet.Applet;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import javax.annotation.Nullable;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
+import net.runelite.client.config.RuneLiteConfig;
+import net.runelite.client.ui.types.GameSize;
 
 @Slf4j
 final class ClientPanel extends JPanel
 {
-	public ClientPanel(@Nullable Applet client)
+	public ClientPanel(@Nullable Applet client, RuneLiteConfig config)
 	{
-		setSize(Constants.GAME_FIXED_SIZE);
 		setMinimumSize(Constants.GAME_FIXED_SIZE);
-		setPreferredSize(Constants.GAME_FIXED_SIZE);
 		setLayout(new BorderLayout());
 		setBackground(Color.black);
 
 		if (client == null)
-		{
 			return;
-		}
 
 		client.setLayout(null);
-		client.setSize(Constants.GAME_FIXED_SIZE);
+		client.setSize(config.gameSize());
+		client.setMinimumSize(Constants.GAME_FIXED_SIZE);
 
 		client.init();
 		client.start();
-
-		add(client, BorderLayout.CENTER);
 
 		// This causes the whole game frame to be redrawn each frame instead
 		// of only the viewport, so we can hook to MainBufferProvider#draw
 		// and draw anywhere without it leaving artifacts
 		if (client instanceof Client)
-		{
 			((Client)client).setGameDrawingMode(2);
-		}
+
+		// Game size updates have to be delayed to allow for the navContainer
+		// to resize before the config change occurs. Also helps with saving to config less.
+		Timer updateGameSizeTimer = new Timer(200, e ->
+			config.gameSize(new GameSize(getSize())));
+		updateGameSizeTimer.setRepeats(false);
+		updateGameSizeTimer.setCoalesce(true);
+
+		addComponentListener(new ComponentAdapter()
+		{
+			@Override
+			public void componentResized(ComponentEvent e)
+			{
+				if (e.getComponent().isDisplayable())
+					updateGameSizeTimer.start();
+			}
+		});
+
+		add(client, BorderLayout.CENTER);
 	}
 }

@@ -24,27 +24,14 @@
  */
 package net.runelite.client.ui;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import javax.swing.JPanel;
 
 public abstract class PluginPanel extends JPanel
 {
-	public static final int PANEL_WIDTH = 225;
+	public static final int PANEL_MIN_WIDTH = 150;
 	public static final int BORDER_WIDTH = 10;
-	private static final int SCROLLBAR_WIDTH = 17;
-	private static final int OFFSET = 6;
-	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(OFFSET, OFFSET, OFFSET, OFFSET);
-	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(PluginPanel.PANEL_WIDTH + SCROLLBAR_WIDTH, 0);
-
-	@Getter(AccessLevel.PROTECTED)
-	private final JScrollPane scrollPane;
-
-	@Getter(AccessLevel.PACKAGE)
-	private final JPanel wrappedPanel;
 
 	protected PluginPanel()
 	{
@@ -54,40 +41,18 @@ public abstract class PluginPanel extends JPanel
 	protected PluginPanel(boolean wrap)
 	{
 		super();
-		if (wrap)
-		{
-			setBorder(BORDER_PADDING);
-			setLayout(new DynamicGridLayout(0, 1, 0, 3));
-			setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setLayout(new BorderLayout());
+		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setMinimumSize(new Dimension(PANEL_MIN_WIDTH, 0));
 
-			final JPanel northPanel = new JPanel();
-			northPanel.setLayout(new BorderLayout());
-			northPanel.add(this, BorderLayout.NORTH);
-			northPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+//		Timer timer  = new Timer(1000, e -> System.out.println("navWidth: " + getWidth()));
+//		timer.setRepeats(true);
+//		timer.start();
 
-			scrollPane = new JScrollPane(northPanel);
-			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-			wrappedPanel = new JPanel();
-
-			// Adjust the preferred size to expand to width of scrollbar to
-			// to preven scrollbar overlapping over contents
-			wrappedPanel.setPreferredSize(OUTER_PREFERRED_SIZE);
-			wrappedPanel.setLayout(new BorderLayout());
-			wrappedPanel.add(scrollPane, BorderLayout.CENTER);
-		}
-		else
-		{
-			scrollPane = null;
-			wrappedPanel = this;
-		}
-	}
-
-	@Override
-	public Dimension getPreferredSize()
-	{
-		int width = this == wrappedPanel ? PANEL_WIDTH + SCROLLBAR_WIDTH : PANEL_WIDTH;
-		return new Dimension(width, super.getPreferredSize().height);
+//		final JPanel northPanel = new JPanel();
+//		northPanel.setLayout(new BorderLayout());
+//		northPanel.add(this, BorderLayout.NORTH);
+//		northPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
 	}
 
 	public void onActivate()

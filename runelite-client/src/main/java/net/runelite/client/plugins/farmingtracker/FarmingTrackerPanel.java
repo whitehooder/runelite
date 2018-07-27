@@ -99,14 +99,7 @@ class FarmingTrackerPanel extends PluginPanel
 
 		farmingWorld.getTabs().forEach((tab, patches) ->
 		{
-			JPanel container = new JPanel(new GridBagLayout())
-			{
-				@Override
-				public Dimension getPreferredSize()
-				{
-					return new Dimension(PluginPanel.PANEL_WIDTH, super.getPreferredSize().height);
-				}
-			};
+			JPanel container = new JPanel(new GridBagLayout());
 			container.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
 			GridBagConstraints c = new GridBagConstraints();

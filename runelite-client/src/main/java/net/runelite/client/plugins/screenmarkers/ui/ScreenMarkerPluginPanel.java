@@ -97,7 +97,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 	public void init()
 	{
 		setLayout(new BorderLayout());
-		setBorder(new EmptyBorder(10, 10, 10, 10));
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 
 		JPanel northPanel = new JPanel(new BorderLayout());
 		northPanel.setBorder(new EmptyBorder(1, 0, 10, 0));
@@ -129,6 +129,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 			constraints.gridy++;
 		}
 
+		noMarkersPanel.setBorder(new EmptyBorder(0, 0, 50, 0));
 		noMarkersPanel.setContent("Screen Markers", "Highlight a region on your screen.");
 		noMarkersPanel.setVisible(false);
 

@@ -49,14 +49,8 @@ public class NotesPanel extends PluginPanel
 
 	void init(NotesConfig config)
 	{
-		// this may or may not qualify as a hack
-		// but this lets the editor pane expand to fill the whole parent panel
-		getParent().setLayout(new BorderLayout());
-		getParent().add(this, BorderLayout.CENTER);
-
 		setLayout(new BorderLayout());
-		setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setBorder(BorderFactory.createEmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 
 		final JLabel notesHeader = new JLabel("Notes");
 		notesHeader.setForeground(Color.WHITE);

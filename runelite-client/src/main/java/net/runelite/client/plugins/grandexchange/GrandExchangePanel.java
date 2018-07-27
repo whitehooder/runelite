@@ -35,7 +35,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.game.ItemManager;
-import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
@@ -61,7 +60,7 @@ class GrandExchangePanel extends PluginPanel
 		super(false);
 
 		setLayout(new BorderLayout());
-		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setBorder(new EmptyBorder(0, -BORDER_WIDTH, 0, 0));
 
 		// Search Panel
 		searchPanel = new GrandExchangeSearchPanel(client, itemManager, executor);

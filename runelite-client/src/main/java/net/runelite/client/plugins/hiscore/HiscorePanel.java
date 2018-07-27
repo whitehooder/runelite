@@ -170,8 +170,7 @@ public class HiscorePanel extends PluginPanel
 		// The layout seems to be ignoring the top margin and only gives it
 		// a 2-3 pixel margin, so I set the value to 18 to compensate
 		// TODO: Figure out why this layout is ignoring most of the top margin
-		setBorder(new EmptyBorder(18, 10, 0, 10));
-		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setBorder(new EmptyBorder(BORDER_WIDTH + 8, 0, BORDER_WIDTH, BORDER_WIDTH));
 		setLayout(new GridBagLayout());
 
 		// Expand sub items to fit width of panel, align to top of panel

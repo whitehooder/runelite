@@ -26,12 +26,14 @@
 
 package net.runelite.client.plugins.skillcalculator;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import net.runelite.api.Client;
@@ -50,15 +52,19 @@ class SkillCalculatorPanel extends PluginPanel
 	SkillCalculatorPanel(SkillIconManager iconManager, Client client)
 	{
 		super();
-		getScrollPane().setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-
 		this.iconManager = iconManager;
 
-		setBorder(new EmptyBorder(10, 10, 10, 10));
-		setLayout(new GridBagLayout());
+		JPanel container = new JPanel(new GridBagLayout());
+		JScrollPane scrollPane = new JScrollPane(container, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+		container.setBorder(new EmptyBorder(
+			BORDER_WIDTH,
+			0,
+			BORDER_WIDTH,
+			BORDER_WIDTH - scrollPane.getVerticalScrollBar().getPreferredSize().width));
 
 		GridBagConstraints c = new GridBagConstraints();
-		c.fill = GridBagConstraints.HORIZONTAL;
+		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
 		c.gridx = 0;
 		c.gridy = 0;
@@ -78,17 +84,19 @@ class SkillCalculatorPanel extends PluginPanel
 		title.setBorder(new EmptyBorder(0, 1, 8, 0));
 		title.setForeground(Color.WHITE);
 
-		add(title, c);
+		container.add(title, c);
 		c.gridy++;
 
-		add(tabGroup, c);
+		container.add(tabGroup, c);
 		c.gridy++;
 
-		add(uiInput, c);
+		container.add(uiInput, c);
 		c.gridy++;
 
-		add(uiCalculator, c);
+		container.add(uiCalculator, c);
 		c.gridy++;
+
+		add(scrollPane, BorderLayout.CENTER);
 	}
 
 	private void addCalculatorButtons()

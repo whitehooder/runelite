@@ -25,11 +25,13 @@
  */
 package net.runelite.client.plugins.devtools;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
 import javax.inject.Inject;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.ui.ColorScheme;
@@ -53,16 +55,16 @@ public class DevToolsPanel extends PluginPanel
 		this.widgetInspector = widgetInspector;
 		this.varInspector = varInspector;
 
-		setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 
-		add(createOptionsPanel());
+		add(createOptionsPanel(), BorderLayout.NORTH);
 	}
 
 	private JPanel createOptionsPanel()
 	{
 		final JPanel container = new JPanel();
 		container.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		container.setLayout(new GridLayout(0, 2, 3, 3));
+		container.setLayout(new GridLayout(0, 2, 5, 5));
 
 		final JButton renderPlayersBtn = new JButton("Players");
 		renderPlayersBtn.addActionListener(e ->

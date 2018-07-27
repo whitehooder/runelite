@@ -159,7 +159,6 @@ class ScreenMarkerPanel extends JPanel
 		this.visible = marker.getMarker().isVisible();
 
 		setLayout(new BorderLayout());
-		setBackground(ColorScheme.DARKER_GRAY_COLOR);
 
 		JPanel nameWrapper = new JPanel(new BorderLayout());
 		nameWrapper.setBackground(ColorScheme.DARKER_GRAY_COLOR);

@@ -67,7 +67,7 @@ class XpPanel extends PluginPanel
 	{
 		super();
 
-		setBorder(new EmptyBorder(10, 6, 10, 6));
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BorderLayout());
 

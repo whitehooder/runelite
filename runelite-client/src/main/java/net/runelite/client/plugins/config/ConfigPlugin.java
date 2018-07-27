@@ -27,9 +27,11 @@ package net.runelite.client.plugins.config;
 import com.google.common.eventbus.Subscribe;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
+import net.runelite.api.events.ConfigChanged;
 import net.runelite.client.config.ChatColorConfig;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.RuneLiteConfig;
@@ -67,6 +69,14 @@ public class ConfigPlugin extends Plugin
 
 	private ConfigPanel configPanel;
 	private NavigationButton navButton;
+
+	@Subscribe
+	void onConfigChanged(ConfigChanged event)
+	{
+		Consumer<String> consumer = configPanel.getConfigChangeListeners().get(event.getGroup() + "." + event.getKey());
+		if (consumer != null)
+			consumer.accept(event.getNewValue());
+	}
 
 	@Override
 	protected void startUp() throws Exception

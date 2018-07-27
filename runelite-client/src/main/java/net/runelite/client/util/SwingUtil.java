@@ -37,6 +37,8 @@ import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.Window;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -341,6 +343,21 @@ public class SwingUtil
 			if (navigationButton.getOnClick() != null)
 			{
 				navigationButton.getOnClick().run();
+			}
+		});
+
+		button.addComponentListener(new ComponentAdapter()
+		{
+			@Override
+			public void componentShown(ComponentEvent componentEvent)
+			{
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent componentEvent)
+			{
+				button.setSelected(false);
+				navigationButton.setSelected(false);
 			}
 		});
 

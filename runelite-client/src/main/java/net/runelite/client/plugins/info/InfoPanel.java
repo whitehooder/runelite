@@ -113,7 +113,7 @@ public class InfoPanel extends PluginPanel
 	{
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
-		setBorder(new EmptyBorder(10, 10, 10, 10));
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 
 		JPanel versionPanel = new JPanel();
 		versionPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);

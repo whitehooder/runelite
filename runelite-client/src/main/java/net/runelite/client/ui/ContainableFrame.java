@@ -24,24 +24,35 @@
  */
 package net.runelite.client.ui;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ContainableFrame extends JFrame
 {
-	private boolean containedInScreen;
+	private boolean containedInScreen = false;
+	private boolean wasJustMadeVisible = false;
+
+	public ContainableFrame()
+	{
+		// Prevent substance from using a resize cursor for pointing
+		getLayeredPane().setCursor(Cursor.getDefaultCursor());
+	}
 
 	public void setContainedInScreen(boolean value)
 	{
-		this.containedInScreen = value;
-
-		revalidateMinimumSize();
+		containedInScreen = value;
 
 		if (value)
 		{
 			// Reposition the frame if it is intersecting with the bounds
-			this.setLocation(this.getX(), this.getY());
-			this.setBounds(this.getX(), this.getY(), this.getWidth(), this.getHeight());
+			setLocation(getX(), getY());
+			setBounds(getX(), getY(), getWidth(), getHeight());
 		}
 	}
 
@@ -77,11 +88,57 @@ public class ContainableFrame extends JFrame
 		super.setBounds(x, y, width, height);
 	}
 
+	@Override
+	public void setVisible(boolean b)
+	{
+		if (!isVisible())
+			wasJustMadeVisible = true;
+		super.setVisible(b);
+	}
+
+	private void updateMinimumSize()
+	{
+		Dimension minSize = getLayout().minimumLayoutSize(getContentPane());
+		Dimension getSize = getSize();
+		Insets insets = getInsets();
+		minSize.width += insets.left + insets.right;
+		minSize.height += insets.top + insets.bottom;
+		setMinimumSize(minSize);
+	}
+
 	/**
 	 * Force minimum size of frame to be it's layout manager's minimum size
 	 */
 	public void revalidateMinimumSize()
 	{
-		setMinimumSize(getLayout().minimumLayoutSize(this));
+		if (isDisplayable())
+		{
+			if (isUndecorated())
+			{
+				// Custom chrome or fullscreen enabled and the contents are displayable, so min size can be calculated
+				updateMinimumSize();
+			}
+			else if (isVisible() && wasJustMadeVisible)
+			{
+				// Wait for system titlebars to be added before updating min size
+				SwingUtilities.invokeLater(this::updateMinimumSize);
+				wasJustMadeVisible = false;
+			}
+			else
+			{
+				updateMinimumSize();
+			}
+		}
+	}
+
+	/**
+	 * Expand or contract the frame the given amount of pixels
+	 * @param expand Whether to expand (true) or contract (false) the frame
+	 * @param widthChange The amount to expand or contract by
+	 */
+	public void resizeWidth(boolean expand, int widthChange)
+	{
+		setMinimumSize(new Dimension(0, 0));
+		setSize(getWidth() + (expand ? 1 : -1) * widthChange, getHeight());
 	}
 }
