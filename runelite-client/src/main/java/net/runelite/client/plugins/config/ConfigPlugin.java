@@ -26,6 +26,7 @@ package net.runelite.client.plugins.config;
 
 import com.google.common.eventbus.Subscribe;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import javax.imageio.ImageIO;
@@ -69,13 +70,23 @@ public class ConfigPlugin extends Plugin
 
 	private ConfigPanel configPanel;
 	private NavigationButton navButton;
+	private ArrayList<String> currentlyBeingChanged = new ArrayList<>();
+
 
 	@Subscribe
 	void onConfigChanged(ConfigChanged event)
 	{
-		Consumer<String> consumer = configPanel.getConfigChangeListeners().get(event.getGroup() + "." + event.getKey());
-		if (consumer != null)
-			consumer.accept(event.getNewValue());
+		String keyPath = event.getGroup() + "." + event.getKey();
+		if (currentlyBeingChanged.contains(keyPath))
+			currentlyBeingChanged.remove(keyPath);
+		else
+		{
+			Consumer<String> consumer = configPanel.getConfigChangeListeners().get(keyPath);
+			if (consumer != null) {
+				currentlyBeingChanged.add(keyPath);
+				consumer.accept(event.getNewValue());
+			}
+		}
 	}
 
 	@Override
