@@ -79,5 +79,7 @@ public class VerticalGapLayout extends BoxLayout
 			else
 				container.setPreferredSize(new Dimension(container.getPreferredSize().width, y - gapSize + (in.top + in.bottom)));
 		}
+
+		container.repaint();
 	}
 }
