@@ -32,6 +32,7 @@ import com.google.inject.Inject;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
@@ -160,7 +161,6 @@ public class InfoPanel extends PluginPanel
 		versionPanel.add(version);
 		versionPanel.add(revision);
 		versionPanel.add(launcher);
-		versionPanel.add(Box.createGlue());
 		versionPanel.add(loggedLabel);
 		versionPanel.add(emailLabel);
 

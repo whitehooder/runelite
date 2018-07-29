@@ -44,15 +44,7 @@ public abstract class PluginPanel extends JPanel
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setMinimumSize(new Dimension(PANEL_MIN_WIDTH, 0));
-
-//		Timer timer  = new Timer(1000, e -> System.out.println("navWidth: " + getWidth()));
-//		timer.setRepeats(true);
-//		timer.start();
-
-//		final JPanel northPanel = new JPanel();
-//		northPanel.setLayout(new BorderLayout());
-//		northPanel.add(this, BorderLayout.NORTH);
-//		northPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		setPreferredSize(new Dimension(PANEL_MIN_WIDTH, 0));
 	}
 
 	public void onActivate()

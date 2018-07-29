@@ -30,6 +30,7 @@ import com.google.inject.Inject;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.WindowAdapter;
@@ -56,7 +57,6 @@ import net.runelite.api.events.VarClientStrChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.ui.ClientUI;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 
 @Slf4j
@@ -117,7 +117,7 @@ class VarInspector extends JFrame
 			}
 		});
 
-		tracker.setLayout(new DynamicGridLayout(0, 1, 0, 3));
+		tracker.setLayout(new GridLayout(0, 1, 0, 3));
 
 		final JPanel trackerWrapper = new JPanel();
 		trackerWrapper.setLayout(new BorderLayout());

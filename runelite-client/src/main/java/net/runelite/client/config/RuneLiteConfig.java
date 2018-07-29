@@ -63,7 +63,7 @@ public interface RuneLiteConfig extends Config
 		name = "Game size",
 		description = "The game will resize to this resolution upon starting the client"
 	)
-	void gameSize(GameSize gameSize);
+	void setGameSize(GameSize gameSize);
 
 	@ConfigItem(
 		keyName = "automaticResizeType",

@@ -31,9 +31,11 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.event.HierarchyListener;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import net.runelite.api.Client;
@@ -55,22 +57,34 @@ class SkillCalculatorPanel extends PluginPanel
 		this.iconManager = iconManager;
 
 		JPanel container = new JPanel(new GridBagLayout());
-		JScrollPane scrollPane = new JScrollPane(container, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		container.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, BORDER_WIDTH));
 
-		container.setBorder(new EmptyBorder(
-			BORDER_WIDTH,
-			0,
-			BORDER_WIDTH,
-			BORDER_WIDTH - scrollPane.getVerticalScrollBar().getPreferredSize().width));
+		// Used to top align the GridBagLayout container
+		JPanel wrapper = new JPanel(new BorderLayout());
+		wrapper.add(container, BorderLayout.PAGE_START);
+		JScrollPane scrollPane = new JScrollPane(wrapper,
+			JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+			JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+		HierarchyListener scrollbarToggleListener = e ->
+		{
+			JScrollBar sb = (JScrollBar) e.getSource();
+			int rightWidth = BORDER_WIDTH;
+			if (sb.isVisible())
+				rightWidth -= sb.getPreferredSize().width;
+			container.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, rightWidth));
+			container.repaint();
+		};
+		scrollPane.getVerticalScrollBar().addHierarchyListener(scrollbarToggleListener);
 
 		GridBagConstraints c = new GridBagConstraints();
-		c.fill = GridBagConstraints.BOTH;
+		c.fill = GridBagConstraints.HORIZONTAL;
 		c.weightx = 1;
 		c.gridx = 0;
 		c.gridy = 0;
 
 		tabGroup = new MaterialTabGroup();
-		tabGroup.setLayout(new GridLayout(0, 6, 7, 7));
+		tabGroup.setLayout(new GridLayout(0, 3, 7, 7));
 
 		addCalculatorButtons();
 

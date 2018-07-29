@@ -27,6 +27,7 @@ package net.runelite.client.plugins.xptracker;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.awt.event.HierarchyListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +37,8 @@ import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +62,7 @@ class XpPanel extends PluginPanel
 	private final JLabel overallExpHour = new JLabel(XpInfoBox.htmlLabel("Per hour: ", 0));
 
 	private final JPanel overallPanel = new JPanel();
+	private final JPanel wrapper = new JPanel();
 
 	/* This displays the "No exp gained" text */
 	private final PluginErrorPanel errorPanel = new PluginErrorPanel();
@@ -67,14 +71,31 @@ class XpPanel extends PluginPanel
 	{
 		super();
 
-		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BorderLayout());
+
+		wrapper.setLayout(new BorderLayout());
+		wrapper.setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
+
+		JScrollPane scrollPane = new JScrollPane(wrapper, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setOpaque(false);
+		scrollPane.getViewport().setOpaque(false);
+
+		HierarchyListener scrollbarToggleListener = e ->
+		{
+			JScrollBar sb = (JScrollBar) e.getSource();
+			int rightWidth = BORDER_WIDTH;
+			if (sb.isVisible())
+				rightWidth -= sb.getPreferredSize().width;
+			wrapper.setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, rightWidth));
+			wrapper.repaint();
+		};
+		scrollPane.getVerticalScrollBar().addHierarchyListener(scrollbarToggleListener);
 
 		final JPanel layoutPanel = new JPanel();
 		BoxLayout boxLayout = new BoxLayout(layoutPanel, BoxLayout.Y_AXIS);
 		layoutPanel.setLayout(boxLayout);
-		add(layoutPanel, BorderLayout.NORTH);
+		wrapper.add(layoutPanel, BorderLayout.NORTH);
 
 		overallPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		overallPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -112,9 +133,9 @@ class XpPanel extends PluginPanel
 		overallPanel.add(overallIcon, BorderLayout.WEST);
 		overallPanel.add(overallInfo, BorderLayout.CENTER);
 
-
 		final JPanel infoBoxPanel = new JPanel();
 		infoBoxPanel.setLayout(new BoxLayout(infoBoxPanel, BoxLayout.Y_AXIS));
+
 		layoutPanel.add(overallPanel);
 		layoutPanel.add(infoBoxPanel);
 
@@ -135,7 +156,9 @@ class XpPanel extends PluginPanel
 		}
 
 		errorPanel.setContent("Exp trackers", "You have not gained experience yet.");
-		add(errorPanel);
+		wrapper.add(errorPanel);
+
+		add(scrollPane, BorderLayout.CENTER);
 	}
 
 	static String buildXpTrackerUrl(final Actor player, final Skill skill)
@@ -189,7 +212,7 @@ class XpPanel extends PluginPanel
 		if (xpSnapshotTotal.getXpGainedInSession() > 0 && !overallPanel.isVisible())
 		{
 			overallPanel.setVisible(true);
-			remove(errorPanel);
+			wrapper.remove(errorPanel);
 		}
 
 		SwingUtilities.invokeLater(() -> rebuildAsync(xpSnapshotTotal));

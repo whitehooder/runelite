@@ -29,23 +29,24 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.event.HierarchyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import lombok.Getter;
 import net.runelite.client.plugins.screenmarkers.ScreenMarkerOverlay;
 import net.runelite.client.plugins.screenmarkers.ScreenMarkerPlugin;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.GapLayout;
 import net.runelite.client.ui.components.PluginErrorPanel;
 
 @Singleton
@@ -62,6 +63,9 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 	private final JLabel addMarker = new JLabel(ADD_ICON);
 	private final JLabel title = new JLabel();
 	private final PluginErrorPanel noMarkersPanel = new PluginErrorPanel();
+	private JPanel centerPanel;
+	private JScrollPane centerScrollPane;
+	private JPanel markerView;
 
 	@Inject
 	private ScreenMarkerPlugin plugin;
@@ -97,7 +101,7 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 	public void init()
 	{
 		setLayout(new BorderLayout());
-		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, 0, 0));
 
 		JPanel northPanel = new JPanel(new BorderLayout());
 		northPanel.setBorder(new EmptyBorder(1, 0, 10, 0));
@@ -107,46 +111,50 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 
 		northPanel.add(title, BorderLayout.WEST);
 		northPanel.add(addMarker, BorderLayout.EAST);
+		northPanel.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, BORDER_WIDTH));
 
-		JPanel centerPanel = new JPanel(new BorderLayout());
+		centerPanel = new JPanel();
+		centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
 		centerPanel.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		centerPanel.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, BORDER_WIDTH));
 
-		JPanel markerView = new JPanel(new GridBagLayout());
+		centerScrollPane = new JScrollPane(centerPanel,
+			JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+		HierarchyListener scrollbarToggleListener = e ->
+		{
+			JScrollBar sb = (JScrollBar) e.getSource();
+			int rightWidth = BORDER_WIDTH;
+			if (sb.isVisible())
+			{
+				if (sb.getWidth() != 0)
+					rightWidth -= sb.getWidth();
+				else
+					rightWidth -= sb.getPreferredSize().width;
+			}
+			centerPanel.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, rightWidth));
+			centerPanel.repaint();
+		};
+		centerScrollPane.getVerticalScrollBar().addHierarchyListener(scrollbarToggleListener);
+
+		markerView = new JPanel();
+		markerView.setLayout(new GapLayout(10));
 		markerView.setBackground(ColorScheme.DARK_GRAY_COLOR);
-
-		GridBagConstraints constraints = new GridBagConstraints();
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.weightx = 1;
-		constraints.gridx = 0;
-		constraints.gridy = 0;
 
 		for (final ScreenMarkerOverlay marker : plugin.getScreenMarkers())
 		{
-			markerView.add(new ScreenMarkerPanel(plugin, marker), constraints);
-			constraints.gridy++;
-
-			markerView.add(Box.createRigidArea(new Dimension(0, 10)), constraints);
-			constraints.gridy++;
+			markerView.add(new ScreenMarkerPanel(plugin, marker));
 		}
 
-		noMarkersPanel.setBorder(new EmptyBorder(0, 0, 50, 0));
 		noMarkersPanel.setContent("Screen Markers", "Highlight a region on your screen.");
-		noMarkersPanel.setVisible(false);
 
 		if (plugin.getScreenMarkers().isEmpty())
 		{
-			noMarkersPanel.setVisible(true);
+			markerView.add(noMarkersPanel);
 			title.setVisible(false);
 		}
 
-		markerView.add(noMarkersPanel, constraints);
-		constraints.gridy++;
-
 		creationPanel = new ScreenMarkerCreationPanel(plugin);
-		creationPanel.setVisible(false);
-
-		markerView.add(creationPanel, constraints);
-		constraints.gridy++;
 
 		addMarker.setToolTipText("Add new screen marker");
 		addMarker.addMouseListener(new MouseAdapter()
@@ -172,8 +180,8 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 
 		centerPanel.add(markerView, BorderLayout.CENTER);
 
-		add(northPanel, BorderLayout.NORTH);
-		add(centerPanel, BorderLayout.CENTER);
+		add(northPanel, BorderLayout.PAGE_START);
+		add(centerScrollPane, BorderLayout.CENTER);
 	}
 
 	public void rebuild()
@@ -189,23 +197,27 @@ public class ScreenMarkerPluginPanel extends PluginPanel
 	{
 		if (on)
 		{
-			noMarkersPanel.setVisible(false);
+			markerView.remove(noMarkersPanel);
 			title.setVisible(true);
 		}
 		else
 		{
 			boolean empty = plugin.getScreenMarkers().isEmpty();
-			noMarkersPanel.setVisible(empty);
+			if (empty)
+				markerView.add(noMarkersPanel);
 			title.setVisible(!empty);
 		}
 
-		creationPanel.setVisible(on);
 		addMarker.setVisible(!on);
 
 		if (on)
 		{
+			markerView.add(creationPanel);
 			creationPanel.lockConfirm();
 			plugin.setMouseListenerEnabled(true);
+			centerScrollPane.validate();
+			JScrollBar v = centerScrollPane.getVerticalScrollBar();
+			v.setValue(v.getMaximum());
 		}
 	}
 }

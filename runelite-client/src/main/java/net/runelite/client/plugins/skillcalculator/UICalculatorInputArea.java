@@ -45,7 +45,7 @@ class UICalculatorInputArea extends JPanel
 
 	UICalculatorInputArea()
 	{
-		setLayout(new GridLayout(2, 2, 7, 7));
+		setLayout(new GridLayout(0, 1, 7, 7));
 		uiFieldCurrentLevel = addComponent("Current Level");
 		uiFieldCurrentXP = addComponent("Current Experience");
 		uiFieldTargetLevel = addComponent("Target Level");

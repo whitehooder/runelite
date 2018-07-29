@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2017, Adam <Adam@sigterm.info>, Whitehooder <whitehooder@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -61,6 +62,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
@@ -89,8 +91,8 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.PluginInstantiationException;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.GapLayout;
 import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.ui.VerticalGapLayout;
 import net.runelite.client.ui.components.ComboBoxListRenderer;
 import net.runelite.client.ui.components.IconButton;
 import net.runelite.client.ui.components.IconTextField;
@@ -158,7 +160,6 @@ public class ConfigPanel extends PluginPanel
 		this.runeLiteConfig = runeLiteConfig;
 		this.chatColorConfig = chatColorConfig;
 
-		searchBar.setPreferredSize(new Dimension(0, 30));
 		searchBar.setIcon(SEARCH);
 		searchBar.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		searchBar.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
@@ -192,14 +193,27 @@ public class ConfigPanel extends PluginPanel
 		add(topPanel, BorderLayout.PAGE_START);
 
 		mainPanel = new JPanel();
-		mainPanel.setLayout(new VerticalGapLayout(mainPanel, 3));
+		mainPanel.setLayout(new GapLayout(3));
 		mainPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		mainPanel.setOpaque(false);
+		mainPanel.setBorder(new EmptyBorder(0, 0, BORDER_WIDTH, BORDER_WIDTH));
 
-		scrollPane = new JScrollPane(mainPanel);
-		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-		mainPanel.setBorder(new EmptyBorder(
-			0, 0, BORDER_WIDTH,
-			BORDER_WIDTH - scrollPane.getVerticalScrollBar().getPreferredSize().width));
+		scrollPane = new JScrollPane(mainPanel,
+			ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setOpaque(false);
+		scrollPane.getViewport().setOpaque(false);
+
+		HierarchyListener scrollbarToggleListener = e ->
+		{
+			JScrollBar sb = (JScrollBar) e.getSource();
+			int rightWidth = BORDER_WIDTH;
+			if (sb.isVisible())
+				rightWidth -= sb.getPreferredSize().width;
+			mainPanel.setBorder(new EmptyBorder(
+				0, 0, BORDER_WIDTH, rightWidth));
+			mainPanel.repaint();
+		};
+		scrollPane.getVerticalScrollBar().addHierarchyListener(scrollbarToggleListener);
 
 		add(scrollPane, BorderLayout.CENTER);
 
@@ -293,6 +307,7 @@ public class ConfigPanel extends PluginPanel
 		showMatchingPlugins(false, text);
 
 		revalidate();
+		repaint();
 	}
 
 	private void showMatchingPlugins(boolean pinned, String text)
@@ -311,6 +326,8 @@ public class ConfigPanel extends PluginPanel
 				mainPanel.add(listItem);
 			}
 		});
+
+		validate();
 	}
 
 	void openGroupConfigPanel(PluginListItem listItem, Config config, ConfigDescriptor cd)

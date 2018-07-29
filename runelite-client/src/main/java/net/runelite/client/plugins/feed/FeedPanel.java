@@ -31,6 +31,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.HierarchyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.FontRenderContext;
@@ -46,6 +47,8 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
@@ -124,19 +127,38 @@ class FeedPanel extends PluginPanel
 		this.config = config;
 		this.feedSupplier = feedSupplier;
 
-		setBorder(new EmptyBorder(10, 10, 10, 10));
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, 0));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
 		setLayout(new BorderLayout());
 
 		feedContainer.setLayout(new GridLayout(0, 1, 0, 4));
 		feedContainer.setBackground(ColorScheme.DARK_GRAY_COLOR);
 
+		JScrollPane scrollPane = new JScrollPane(feedContainer,
+			JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+		HierarchyListener scrollbarToggleListener = e ->
+		{
+			JScrollBar sb = (JScrollBar) e.getSource();
+			int rightWidth = BORDER_WIDTH;
+			if (sb.isVisible())
+			{
+				if (sb.getWidth() != 0)
+					rightWidth -= sb.getWidth();
+				else
+					rightWidth -= sb.getPreferredSize().width;
+			}
+			feedContainer.setBorder(new EmptyBorder(0, 0, 0, rightWidth));
+			feedContainer.repaint();
+		};
+		scrollPane.getVerticalScrollBar().addHierarchyListener(scrollbarToggleListener);
+
 		JLabel title = new JLabel("News feed");
-		title.setBorder(new EmptyBorder(0, 0, 9, 0));
+		title.setBorder(new EmptyBorder(0, 0, 9, BORDER_WIDTH));
 		title.setForeground(Color.WHITE);
 
 		add(title, BorderLayout.NORTH);
-		add(feedContainer, BorderLayout.CENTER);
+		add(scrollPane, BorderLayout.CENTER);
 	}
 
 	void rebuildFeed()

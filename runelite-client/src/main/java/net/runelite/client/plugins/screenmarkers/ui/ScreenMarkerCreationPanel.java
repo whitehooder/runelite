@@ -75,7 +75,7 @@ public class ScreenMarkerCreationPanel extends JPanel
 	ScreenMarkerCreationPanel(ScreenMarkerPlugin plugin)
 	{
 		setBackground(ColorScheme.DARKER_GRAY_COLOR);
-		setBorder(new EmptyBorder(PluginPanel.BORDER_WIDTH, 0, PluginPanel.BORDER_WIDTH, PluginPanel.BORDER_WIDTH));
+		setBorder(new EmptyBorder(PluginPanel.BORDER_WIDTH, PluginPanel.BORDER_WIDTH, PluginPanel.BORDER_WIDTH, PluginPanel.BORDER_WIDTH));
 		setLayout(new BorderLayout());
 
 		instructionsLabel.setFont(FontManager.getRunescapeSmallFont());

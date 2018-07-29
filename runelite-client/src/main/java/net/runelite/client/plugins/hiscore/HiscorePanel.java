@@ -27,6 +27,7 @@ package net.runelite.client.plugins.hiscore;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -167,16 +168,13 @@ public class HiscorePanel extends PluginPanel
 		super();
 		this.config = config;
 
-		// The layout seems to be ignoring the top margin and only gives it
-		// a 2-3 pixel margin, so I set the value to 18 to compensate
-		// TODO: Figure out why this layout is ignoring most of the top margin
-		setBorder(new EmptyBorder(BORDER_WIDTH + 8, 0, BORDER_WIDTH, BORDER_WIDTH));
-		setLayout(new GridBagLayout());
+		setBorder(new EmptyBorder(BORDER_WIDTH, 0, BORDER_WIDTH, BORDER_WIDTH));
+
+		JPanel gridPanel = new JPanel(new GridBagLayout());
 
 		// Expand sub items to fit width of panel, align to top of panel
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
-		c.gridx = 0;
 		c.gridy = 0;
 		c.weightx = 1;
 		c.weighty = 0;
@@ -211,11 +209,11 @@ public class HiscorePanel extends PluginPanel
 			}
 		});
 
-		add(input, c);
+		gridPanel.add(input, c);
 		c.gridy++;
 
 		tabGroup = new MaterialTabGroup();
-		tabGroup.setLayout(new GridLayout(1, 5, 7, 7));
+		tabGroup.setLayout(new GridLayout(1, HiscoreEndpoint.values().length, 7, 7));
 
 		for (HiscoreEndpoint endpoint : HiscoreEndpoint.values())
 		{
@@ -269,7 +267,7 @@ public class HiscorePanel extends PluginPanel
 		// Default selected tab is normal hiscores
 		resetEndpoints();
 
-		add(tabGroup, c);
+		gridPanel.add(tabGroup, c);
 		c.gridy++;
 
 		// Panel that holds skill icons
@@ -285,7 +283,7 @@ public class HiscorePanel extends PluginPanel
 			statsPanel.add(panel);
 		}
 
-		add(statsPanel, c);
+		gridPanel.add(statsPanel, c);
 		c.gridy++;
 
 		JPanel totalPanel = new JPanel();
@@ -295,7 +293,7 @@ public class HiscorePanel extends PluginPanel
 		totalPanel.add(makeSkillPanel(null)); //combat has no hiscore skill, refered to as null
 		totalPanel.add(makeSkillPanel(OVERALL));
 
-		add(totalPanel, c);
+		gridPanel.add(totalPanel, c);
 		c.gridy++;
 
 		JPanel minigamePanel = new JPanel();
@@ -309,8 +307,10 @@ public class HiscorePanel extends PluginPanel
 		minigamePanel.add(makeSkillPanel(BOUNTY_HUNTER_ROGUE));
 		minigamePanel.add(makeSkillPanel(BOUNTY_HUNTER_HUNTER));
 
-		add(minigamePanel, c);
+		gridPanel.add(minigamePanel, c);
 		c.gridy++;
+
+		add(gridPanel, BorderLayout.PAGE_START);
 	}
 
 	@Override

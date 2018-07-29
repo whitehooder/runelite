@@ -418,8 +418,8 @@ class ScreenMarkerPanel extends JPanel
 		rightActions.add(visibilityLabel);
 		rightActions.add(deleteLabel);
 
-		bottomContainer.add(leftActions, BorderLayout.WEST);
 		bottomContainer.add(rightActions, BorderLayout.EAST);
+		bottomContainer.add(leftActions, BorderLayout.WEST);
 
 		add(nameWrapper, BorderLayout.NORTH);
 		add(bottomContainer, BorderLayout.CENTER);
@@ -427,8 +427,6 @@ class ScreenMarkerPanel extends JPanel
 		updateVisibility();
 		updateFill();
 		updateBorder();
-		updateBorder();
-
 	}
 
 	private void updateNameActions(boolean saveAndCancel)

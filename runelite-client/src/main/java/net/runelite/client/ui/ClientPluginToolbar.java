@@ -29,7 +29,12 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.Map;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.border.EmptyBorder;
 
 /**
  * Client plugin toolbar.
@@ -38,6 +43,9 @@ public class ClientPluginToolbar extends JToolBar
 {
 	private static final int TOOLBAR_WIDTH = 36, TOOLBAR_HEIGHT = 503;
 	private final Map<NavigationButton, Component> componentMap = new HashMap<>();
+
+	private JPanel container;
+	private JScrollPane scrollPane;
 
 	/**
 	 * Instantiates a new Client plugin toolbar.
@@ -50,7 +58,16 @@ public class ClientPluginToolbar extends JToolBar
 		setMinimumSize(new Dimension(TOOLBAR_WIDTH, TOOLBAR_HEIGHT));
 		setPreferredSize(new Dimension(TOOLBAR_WIDTH, TOOLBAR_HEIGHT));
 		setMaximumSize(new Dimension(TOOLBAR_WIDTH, Integer.MAX_VALUE));
-		addSeparator();
+		setBorder(new EmptyBorder(0, 0, 0, 0));
+
+		container = new JPanel();
+		container.setLayout(new BoxLayout(container, VERTICAL));
+		container.setBorder(new EmptyBorder(2, 3, 2, 3));
+
+		scrollPane = new JScrollPane(container, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+
+		add(scrollPane);
 	}
 
 	public void addComponent(final int index, final NavigationButton button, final Component component)
@@ -59,15 +76,15 @@ public class ClientPluginToolbar extends JToolBar
 		{
 			if (index < 0)
 			{
-				add(component);
+				container.add(component);
 			}
 			else
 			{
-				add(component, index);
+				container.add(component, index);
 			}
 
-			revalidate();
-			repaint();
+			container.revalidate();
+			container.repaint();
 		}
 	}
 
@@ -77,9 +94,9 @@ public class ClientPluginToolbar extends JToolBar
 
 		if (component != null)
 		{
-			remove(component);
-			revalidate();
-			repaint();
+			container.remove(component);
+			container.revalidate();
+			container.repaint();
 		}
 	}
 }

@@ -61,6 +61,7 @@ public class IconTextField extends JPanel
 
 		textField = new FlatTextField();
 		textField.setBorder(null);
+		textField.setPreferredSize(new Dimension(0, 30));
 
 		JTextField innerTxt = textField.getTextField();
 		innerTxt.removeMouseListener(innerTxt.getMouseListeners()[innerTxt.getMouseListeners().length - 1]);

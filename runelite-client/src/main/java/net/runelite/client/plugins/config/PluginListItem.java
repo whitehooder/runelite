@@ -137,7 +137,7 @@ class PluginListItem extends JPanel
 		Collections.addAll(keywords, name.toLowerCase().split(" "));
 		Collections.addAll(keywords, tags);
 
-		setLayout(new BorderLayout(3, 0));
+		setLayout(new BorderLayout(5, 0));
 		setPreferredSize(new Dimension(0, 20));
 		setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
 

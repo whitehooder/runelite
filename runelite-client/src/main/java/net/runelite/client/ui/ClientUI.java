@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2016-2018, Adam <Adam@sigterm.info>, Whitehooder <https://github.com/whitehooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -62,6 +63,7 @@ import javax.swing.JRootPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -126,12 +128,14 @@ public class ClientUI
 
 	private RuneLite runelite;
 	private final RuneLiteProperties properties;
+	@Getter(AccessLevel.PACKAGE)
 	private final RuneLiteConfig config;
 	private final MouseManager mouseManager;
 	private final Applet client;
 	private final CardLayout cardLayout = new CardLayout();
 	private ContainableFrame frame;
 	private JPanel navContainer;
+	@Getter(AccessLevel.PACKAGE)
 	private JSplitPane splitPane;
 	private PluginPanel pluginPanel;
 	private ClientPanel clientPanel;
@@ -142,8 +146,11 @@ public class ClientUI
 	private boolean customChromeEnabled = true;
 	private boolean sidebarEnabled = true;
 	private boolean navContainerEnabled = true;
+	@Getter(AccessLevel.PACKAGE)
 	private boolean fullscreenEnabled = false;
 	private boolean navContainerWasEnabled = navContainerEnabled;
+	private boolean gameSizeChanged = false;
+	private boolean firstRun = true;
 	private NavigationButton sidebarNavigationButton;
 	private JButton sidebarNavigationJButton;
 
@@ -184,20 +191,23 @@ public class ClientUI
 					frame.setContainedInScreen(config.containInScreen());
 					break;
 				case RuneLiteConfig.GAME_SIZE:
-					if (client == null)
+					if (client == null)// || ((SplitPaneUI) splitPane.getUI()).getDivider().isBeingDragged())
 						break;
 
-					int changeWidth = config.gameSize().width - clientPanel.getSize().width;
-					int changeHeight = config.gameSize().height - clientPanel.getSize().height;
+					GameSize gameSize = config.gameSize();
+					Dimension clientSize = client.getSize();
+
+					int changeWidth = gameSize.width - clientSize.width;
+					int changeHeight = gameSize.height - clientSize.height;
 
 					if (changeWidth != 0 || changeHeight != 0)
 					{
+						gameSizeChanged = true;
 						Dimension size = frame.getSize();
 						size.width += changeWidth;
 						size.height += changeHeight;
 						frame.setSize(size);
-						clientPanel.setSize(config.gameSize());
-						frame.revalidate();
+						client.setSize(config.gameSize());
 						frame.revalidateMinimumSize();
 					}
 					break;
@@ -300,7 +310,7 @@ public class ClientUI
 			titleToolbar.addComponent(navButton, button);
 
 			if (!customChromeEnabled)
-				pluginToolbar.addComponent(event.getIndex(), navButton, button);
+				pluginToolbar.addComponent(-1, navButton, button);
 		});
 	}
 
@@ -348,11 +358,22 @@ public class ClientUI
 
 			trayIcon = SwingUtil.createTrayIcon(ICON, properties.getTitle(), frame);
 
+			final AtomicBoolean wasGracefullyShutDown = new AtomicBoolean(false);
+			Runtime.getRuntime().addShutdownHook(new Thread(() ->
+			{
+				if (!wasGracefullyShutDown.get())
+				{
+					saveClientState();
+					runelite.shutdown();
+				}
+			}, "Shutdown-thread"));
+
 			SwingUtil.addGracefulExitCallback(frame,
 				() ->
 				{
 					saveClientState();
 					runelite.shutdown();
+					wasGracefullyShutDown.set(true);
 				},
 				this::showWarningOnExit
 			);
@@ -363,25 +384,38 @@ public class ClientUI
 			// To reduce substance's colorization (tinting)
 			navContainer.putClientProperty(SubstanceSynapse.COLORIZATION_FACTOR, 1.0);
 			navContainer.setMinimumSize(new Dimension(PluginPanel.PANEL_MIN_WIDTH, 0));
-
-			clientPanel = new ClientPanel(client, config);
-
-			// Game size updates have to be delayed to allow for the navContainer
-			// to resize before the config change occurs. Also helps with saving to config less.
-			Timer updateGameSizeTimer = new Timer(100, e ->
-				config.gameSize(new GameSize(clientPanel.getSize())));
-			updateGameSizeTimer.setRepeats(false);
-			updateGameSizeTimer.setCoalesce(true);
-
-			clientPanel.addComponentListener(new ComponentAdapter()
+			navContainer.addComponentListener(new ComponentAdapter()
 			{
 				@Override
 				public void componentResized(ComponentEvent e)
 				{
-					if (fullscreenEnabled)
-						updateGameSizeTimer.stop();
-					else if (clientPanel.isDisplayable())
-						updateGameSizeTimer.start();
+					if (navContainerEnabled && navContainer.isVisible())
+						config.storeSidebarWidth(e.getComponent().getWidth());
+				}
+			});
+
+			clientPanel = new ClientPanel(client);
+
+			// Used to not spam config changed events
+			Timer updateGameSizeTimer = new Timer(100, e ->
+			{
+				// Set gameSizeChanged so the next config change event can be discarded
+				gameSizeChanged = true;
+				config.setGameSize(new GameSize(client.getSize()));
+			});
+			updateGameSizeTimer.setRepeats(false);
+			updateGameSizeTimer.setCoalesce(true);
+
+			client.addComponentListener(new ComponentAdapter()
+			{
+				@Override
+				public void componentResized(ComponentEvent e)
+				{
+					// Discard resize event if config was just changed
+					if (gameSizeChanged)
+						gameSizeChanged = false;
+					else if (client.isDisplayable() && !fullscreenEnabled)
+						updateGameSizeTimer.restart();
 				}
 			});
 
@@ -391,8 +425,6 @@ public class ClientUI
 			splitPane.setResizeWeight(1);
 			splitPane.setDividerSize(PluginPanel.BORDER_WIDTH);
 			splitPane.setUI(new SplitPaneUI());
-			splitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, e ->
-				config.storeSidebarWidth(navContainer.getWidth() + splitPane.getDividerSize()));
 
 			frame.add(splitPane, BorderLayout.CENTER);
 
@@ -447,20 +479,19 @@ public class ClientUI
 
 				if (config.fullscreenToggleHotkey().matches(e))
 				{
-					SwingUtilities.invokeLater(this::toggleFullscreen);
+					toggleFullscreen();
 					e.consume();
 				}
 				else if (config.sidebarToggleHotkey().matches(e))
 				{
-					SwingUtilities.invokeLater(this::toggleSidebar);
+					toggleSidebar();
 					e.consume();
 				}
 			}, AWTEvent.KEY_EVENT_MASK);
 
-			if (!config.enableCustomChrome())
-				setCustomWindowChrome(config.enableCustomChrome());
-
+			setCustomWindowChrome(config.enableCustomChrome());
 			restoreClientState();
+
 			showFrame();
 		});
 	}
@@ -479,13 +510,17 @@ public class ClientUI
 			frame.toFront();
 			requestFocus();
 
-			// Send a message if the client isn't purposefully run as vanilla
-			if (runelite.getUpdateMode() == ClientUpdateCheckMode.AUTO && !(client instanceof Client))
-				JOptionPane.showMessageDialog(frame,
-					"RuneLite has not yet been updated to work with the latest\n"
-						+ "game update, it will work with reduced functionality until then.",
-					"RuneLite is outdated",
-					JOptionPane.INFORMATION_MESSAGE);
+			if (firstRun)
+			{
+				firstRun = false;
+				// Send a message if the client isn't purposefully run as vanilla
+				if (runelite.getUpdateMode() == ClientUpdateCheckMode.AUTO && !(client instanceof Client))
+					JOptionPane.showMessageDialog(frame,
+						"RuneLite has not yet been updated to work with the latest\n"
+							+ "game update, it will work with reduced functionality until then.",
+						"RuneLite is outdated",
+						JOptionPane.INFORMATION_MESSAGE);
+			}
 		});
 
 		log.info("Showing frame {}", frame);
@@ -504,10 +539,6 @@ public class ClientUI
 
 	private void setCustomWindowChrome(boolean enabled)
 	{
-		// Nothing to change
-		if (customChromeEnabled == enabled)
-			return;
-
 		customChromeEnabled = enabled;
 
 		boolean wasVisible = frame.isVisible();
@@ -703,19 +734,12 @@ public class ClientUI
 
 		if (sidebarEnabled)
 		{
-			if (navContainerWasEnabled)
-				toggleNavContainer();
-
 			frame.add(pluginToolbar, BorderLayout.EAST);
 			sidebarNavigationJButton.setIcon(new ImageIcon(SIDEBAR_CLOSE));
 			sidebarNavigationJButton.setToolTipText("Close SideBar");
 		}
 		else
 		{
-			navContainerWasEnabled = navContainerEnabled;
-			if (navContainerEnabled)
-				toggleNavContainer();
-
 			frame.remove(pluginToolbar);
 			sidebarNavigationJButton.setIcon(new ImageIcon(SIDEBAR_OPEN));
 			sidebarNavigationJButton.setToolTipText("Open SideBar");
@@ -724,24 +748,35 @@ public class ClientUI
 		if (config.automaticResizeType() == ExpandResizeType.KEEP_GAME_SIZE)
 			frame.resizeWidth(sidebarEnabled, pluginToolbar.getWidth());
 
-		frame.revalidate();
-		frame.revalidateMinimumSize();
-
-		giveClientFocus();
+		if (sidebarEnabled)
+		{
+			if (navContainerWasEnabled)
+				toggleNavContainer();
+			else
+				frame.revalidate();
+		}
+		else
+		{
+			navContainerWasEnabled = navContainerEnabled;
+			if (navContainerEnabled)
+				toggleNavContainer();
+			else
+				frame.revalidate();
+		}
 	}
 
 	private void toggleNavContainer()
 	{
 		navContainerEnabled = !navContainerEnabled;
 
-		int diffWidth = navContainer.getWidth() + splitPane.getDividerSize();
-
-		if (config.automaticResizeType() == ExpandResizeType.KEEP_GAME_SIZE)
-			frame.resizeWidth(navContainerEnabled, diffWidth);
+		int diffWidth = config.storedSidebarWidth() + splitPane.getDividerSize();
 
 		if (navContainerEnabled)
 		{
 			clientPanel.add(client, BorderLayout.CENTER);
+			splitPane.revalidate();
+			SwingUtilities.invokeLater(() ->
+				splitPane.setDividerLocation(splitPane.getWidth() - diffWidth));
 			frame.add(splitPane, BorderLayout.CENTER);
 		}
 		else
@@ -751,7 +786,9 @@ public class ClientUI
 		}
 
 		frame.revalidate();
-		frame.revalidateMinimumSize();
+
+		if (config.automaticResizeType() == ExpandResizeType.KEEP_GAME_SIZE)
+			frame.resizeWidth(navContainerEnabled, diffWidth);
 
 		giveClientFocus();
 	}
@@ -807,7 +844,6 @@ public class ClientUI
 				config.storeClientBounds(frame.getBounds());
 			}
 
-			config.storeSidebarWidth(navContainer.getWidth() + splitPane.getDividerSize());
 			config.storeClientFullscreenState(fullscreenEnabled);
 		}
 		else
@@ -831,13 +867,13 @@ public class ClientUI
 			if (!fullscreenEnabled)
 				applyStoredClientBounds();
 
-			navContainer.setSize(new Dimension(config.storedSidebarWidth(), navContainer.getHeight()));
-			splitPane.setDividerLocation(config.gameSize().width);
-
 			if (config.storedSidebarState() != sidebarEnabled)
 				toggleSidebar();
 
 			frame.setExtendedState(config.storedClientExtendedState());
+
+			navContainer.setSize(new Dimension(config.storedSidebarWidth(), navContainer.getHeight()));
+			splitPane.setDividerLocation(config.gameSize().width);
 		}
 	}
 }

@@ -32,12 +32,11 @@ import javax.swing.JPanel;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Constants;
-import net.runelite.client.config.RuneLiteConfig;
 
 @Slf4j
 final class ClientPanel extends JPanel
 {
-	public ClientPanel(@Nullable Applet client, RuneLiteConfig config)
+	public ClientPanel(@Nullable Applet client)
 	{
 		setMinimumSize(Constants.GAME_FIXED_SIZE);
 		setLayout(new BorderLayout());
@@ -47,7 +46,7 @@ final class ClientPanel extends JPanel
 			return;
 
 		client.setLayout(null);
-		client.setSize(config.gameSize());
+		client.setSize(Constants.GAME_FIXED_SIZE);
 		client.setMinimumSize(Constants.GAME_FIXED_SIZE);
 
 		client.init();

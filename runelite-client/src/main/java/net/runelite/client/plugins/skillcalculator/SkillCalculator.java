@@ -47,8 +47,8 @@ import net.runelite.client.plugins.skillcalculator.beans.SkillData;
 import net.runelite.client.plugins.skillcalculator.beans.SkillDataBonus;
 import net.runelite.client.plugins.skillcalculator.beans.SkillDataEntry;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.GapLayout;
 
 class SkillCalculator extends JPanel
 {
@@ -79,7 +79,8 @@ class SkillCalculator extends JPanel
 		this.client = client;
 		this.uiInput = uiInput;
 
-		setLayout(new DynamicGridLayout(0, 1, 0, 5));
+//		setLayout(new GridLayout(0, 1, 0, 5));
+		setLayout(new GapLayout(GapLayout.Direction.VERTICAL, 5));
 
 		// Register listeners on the input fields and then move on to the next related text field
 		uiInput.uiFieldCurrentLevel.addActionListener(e ->

@@ -28,6 +28,7 @@ package net.runelite.client.plugins.xptracker;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.io.IOException;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -45,7 +46,6 @@ import net.runelite.api.Experience;
 import net.runelite.api.Skill;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.components.ProgressBar;
 import net.runelite.client.util.LinkBrowser;
@@ -130,7 +130,7 @@ class XpInfoBox extends JPanel
 		headerPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		headerPanel.setLayout(new BorderLayout());
 
-		statsPanel.setLayout(new DynamicGridLayout(2, 2));
+		statsPanel.setLayout(new GridLayout(2, 2));
 		statsPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		statsPanel.setBorder(new EmptyBorder(9, 2, 9, 2));
 

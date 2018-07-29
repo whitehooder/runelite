@@ -27,9 +27,11 @@ package net.runelite.client.plugins.notes;
 
 import java.awt.Color;
 import javax.swing.BorderFactory;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -60,6 +62,7 @@ public class NotesPanel extends PluginPanel
 
 		notesEditor.setLineWrap(true);
 		notesEditor.setWrapStyleWord(true);
+		notesEditor.setBorder(new EmptyBorder(BORDER_WIDTH, BORDER_WIDTH, BORDER_WIDTH, BORDER_WIDTH));
 
 		JPanel notesContainer = new JPanel();
 		notesContainer.setLayout(new BorderLayout());
@@ -99,8 +102,13 @@ public class NotesPanel extends PluginPanel
 				}
 			}
 		});
-		notesContainer.add(notesEditor, BorderLayout.CENTER);
-		notesContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+		JScrollPane notesEditorScrollPane = new JScrollPane(notesEditor,
+			ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		notesEditorScrollPane.getViewport().setOpaque(false);
+		notesEditorScrollPane.setOpaque(false);
+
+		notesContainer.add(notesEditorScrollPane, BorderLayout.CENTER);
 
 		add(notesContainer, BorderLayout.CENTER);
 	}

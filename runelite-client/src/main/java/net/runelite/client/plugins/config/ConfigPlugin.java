@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2017, Adam <Adam@sigterm.info>, Whitehooder <whitehooder@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,7 +82,8 @@ public class ConfigPlugin extends Plugin
 		else
 		{
 			Consumer<String> consumer = configPanel.getConfigChangeListeners().get(keyPath);
-			if (consumer != null) {
+			if (consumer != null)
+			{
 				currentlyBeingChanged.add(keyPath);
 				consumer.accept(event.getNewValue());
 			}

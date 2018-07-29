@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Woox <https://github.com/wooxsolo>
+ * Copyright (c) 2018, Woox <https://github.com/wooxsolo>, Whitehooder <https://github.com/whitehooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,6 @@ public class ContainableFrame extends JFrame
 		if (value)
 		{
 			// Reposition the frame if it is intersecting with the bounds
-			setLocation(getX(), getY());
 			setBounds(getX(), getY(), getWidth(), getHeight());
 		}
 	}
@@ -99,7 +98,6 @@ public class ContainableFrame extends JFrame
 	private void updateMinimumSize()
 	{
 		Dimension minSize = getLayout().minimumLayoutSize(getContentPane());
-		Dimension getSize = getSize();
 		Insets insets = getInsets();
 		minSize.width += insets.left + insets.right;
 		minSize.height += insets.top + insets.bottom;
@@ -111,23 +109,22 @@ public class ContainableFrame extends JFrame
 	 */
 	public void revalidateMinimumSize()
 	{
-		if (isDisplayable())
+		if (!isDisplayable()) return;
+
+		if (isUndecorated())
 		{
-			if (isUndecorated())
-			{
-				// Custom chrome or fullscreen enabled and the contents are displayable, so min size can be calculated
-				updateMinimumSize();
-			}
-			else if (isVisible() && wasJustMadeVisible)
-			{
-				// Wait for system titlebars to be added before updating min size
-				SwingUtilities.invokeLater(this::updateMinimumSize);
-				wasJustMadeVisible = false;
-			}
-			else
-			{
-				updateMinimumSize();
-			}
+			// Custom chrome or fullscreen enabled and the contents are displayable, so min size can be calculated
+			updateMinimumSize();
+		}
+		else if (isVisible() && wasJustMadeVisible)
+		{
+			// Wait for system titlebars to be added before updating min size
+			SwingUtilities.invokeLater(this::updateMinimumSize);
+			wasJustMadeVisible = false;
+		}
+		else
+		{
+			updateMinimumSize();
 		}
 	}
 
@@ -138,7 +135,12 @@ public class ContainableFrame extends JFrame
 	 */
 	public void resizeWidth(boolean expand, int widthChange)
 	{
-		setMinimumSize(new Dimension(0, 0));
-		setSize(getWidth() + (expand ? 1 : -1) * widthChange, getHeight());
+		int w = getWidth(), h = getHeight();
+		revalidateMinimumSize();
+//		if (isUndecorated())
+			setSize(w + (expand ? 1 : -1) * widthChange, h);
+//		else
+//			// Needed for system window borders in some cases (Gnome, KDE)
+//			SwingUtilities.invokeLater(() -> setSize(w + (expand ? 1 : -1) * widthChange, h));
 	}
 }
