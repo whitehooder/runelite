@@ -75,13 +75,11 @@ import net.runelite.client.RuneLiteProperties;
 import net.runelite.client.config.ExpandResizeType;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.config.WarningOnExit;
-import net.runelite.client.events.PluginToolbarButtonAdded;
-import net.runelite.client.events.PluginToolbarButtonRemoved;
-import net.runelite.client.events.TitleToolbarButtonAdded;
-import net.runelite.client.events.TitleToolbarButtonRemoved;
 import net.runelite.client.input.MouseListener;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.rs.ClientUpdateCheckMode;
+import net.runelite.client.events.NavigationButtonAdded;
+import net.runelite.client.events.NavigationButtonRemoved;
 import net.runelite.client.ui.skin.SubstanceRuneLiteLookAndFeel;
 import net.runelite.client.ui.types.GameSize;
 import net.runelite.client.util.OSXUtil;
@@ -216,17 +214,20 @@ public class ClientUI
 	}
 
 	@Subscribe
-	public void onPluginToolbarButtonAdded(final PluginToolbarButtonAdded event)
+	public void onNavigationButtonAdded(final NavigationButtonAdded event)
 	{
 		SwingUtilities.invokeLater(() ->
 		{
 			final NavigationButton navigationButton = event.getButton();
 			final PluginPanel pluginPanel = navigationButton.getPanel();
+			final boolean inTitle = !event.getButton().isTab() &&
+				(config.enableCustomChrome() || SwingUtil.isCustomTitlePanePresent(frame));
+			final int iconSize = 16;
 
 			if (pluginPanel != null)
 				navContainer.add(pluginPanel, navigationButton.getTooltip());
 
-			final JButton button = SwingUtil.createSwingButton(navigationButton, 0, (navButton, jButton) ->
+			final JButton button = SwingUtil.createSwingButton(navigationButton, iconSize, (navButton, jButton) ->
 			{
 				if (navButton.getPanel() == null)
 					return;
@@ -275,52 +276,32 @@ public class ClientUI
 				}
 			});
 
-			pluginToolbar.addComponent(event.getIndex(), event.getButton(), button);
+			if (inTitle)
+			{
+				titleToolbar.addComponent(event.getButton(), button);
+			}
+			else
+			{
+				pluginToolbar.addComponent(event.getButton(), button);
+			}
 
 			if (config.storedSidebarSelectedTab() != null &&
 				config.storedSidebarSelectedTab()
-						.isInstance(navigationButton.getPanel()))
+					.isInstance(navigationButton.getPanel()))
 				button.doClick();
 		});
 	}
 
 	@Subscribe
-	public void onPluginToolbarButtonRemoved(final PluginToolbarButtonRemoved event)
+	public void onNavigationButtonRemoved(final NavigationButtonRemoved event)
 	{
 		SwingUtilities.invokeLater(() ->
 		{
 			pluginToolbar.removeComponent(event.getButton());
+			titleToolbar.removeComponent(event.getButton());
 			final PluginPanel pluginPanel = event.getButton().getPanel();
 			if (pluginPanel != null)
 				navContainer.remove(pluginPanel);
-		});
-	}
-
-	@Subscribe
-	public void onTitleToolbarButtonAdded(final TitleToolbarButtonAdded event)
-	{
-		SwingUtilities.invokeLater(() ->
-		{
-			NavigationButton navButton = event.getButton();
-			JButton button = SwingUtil.createSwingButton(
-					event.getButton(),
-					ClientTitleToolbar.TITLEBAR_SIZE - 6,
-					null);
-
-			titleToolbar.addComponent(navButton, button);
-
-			if (!customChromeEnabled)
-				pluginToolbar.addComponent(-1, navButton, button);
-		});
-	}
-
-	@Subscribe
-	public void onTitleToolbarButtonRemoved(final TitleToolbarButtonRemoved event)
-	{
-		SwingUtilities.invokeLater(() ->
-		{
-			titleToolbar.removeComponent(event.getButton());
-			pluginToolbar.removeComponent(event.getButton());
 		});
 	}
 
@@ -439,10 +420,11 @@ public class ClientUI
 
 			// Create hide sidebar button
 			sidebarNavigationButton = NavigationButton
-					.builder()
-					.icon(SIDEBAR_CLOSE)
-					.onClick(this::toggleSidebar)
-					.build();
+				.builder()
+				.priority(100)
+				.icon(SIDEBAR_CLOSE)
+				.onClick(this::toggleSidebar)
+				.build();
 
 			sidebarNavigationJButton = SwingUtil.createSwingButton(sidebarNavigationButton, 0, null);
 
@@ -563,7 +545,6 @@ public class ClientUI
 		{
 			for (NavigationButton navButton : titleToolbar.getComponentMap().keySet())
 				pluginToolbar.addComponent(
-					-1,
 					navButton,
 					SwingUtil.createSwingButton(navButton, 0, null));
 		}
