@@ -48,6 +48,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
@@ -72,14 +73,15 @@ import net.runelite.api.Point;
 import net.runelite.api.events.ConfigChanged;
 import net.runelite.client.RuneLite;
 import net.runelite.client.RuneLiteProperties;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.ExpandResizeType;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.config.WarningOnExit;
+import net.runelite.client.events.NavigationButtonAdded;
+import net.runelite.client.events.NavigationButtonRemoved;
 import net.runelite.client.input.MouseListener;
 import net.runelite.client.input.MouseManager;
 import net.runelite.client.rs.ClientUpdateCheckMode;
-import net.runelite.client.events.NavigationButtonAdded;
-import net.runelite.client.events.NavigationButtonRemoved;
 import net.runelite.client.ui.skin.SubstanceRuneLiteLookAndFeel;
 import net.runelite.client.ui.types.GameSize;
 import net.runelite.client.util.OSXUtil;
@@ -128,6 +130,7 @@ public class ClientUI
 	private final RuneLiteProperties properties;
 	@Getter(AccessLevel.PACKAGE)
 	private final RuneLiteConfig config;
+	private final ConfigManager configManager;
 	private final MouseManager mouseManager;
 	private final Applet client;
 	private final CardLayout cardLayout = new CardLayout();
@@ -141,26 +144,28 @@ public class ClientUI
 	private ClientTitleToolbar titleToolbar;
 	private JButton currentButton;
 	private NavigationButton currentNavButton;
-	private boolean customChromeEnabled = true;
+	private NavigationButton sidebarNavigationButton;
+	private JButton sidebarNavigationJButton;
+
 	private boolean sidebarEnabled = true;
 	private boolean navContainerEnabled = true;
 	@Getter(AccessLevel.PACKAGE)
 	private boolean fullscreenEnabled = false;
 	private boolean navContainerWasEnabled = navContainerEnabled;
-	private boolean gameSizeChanged = false;
+	private int gameResizedCount = 0;
 	private boolean firstRun = true;
-	private NavigationButton sidebarNavigationButton;
-	private JButton sidebarNavigationJButton;
 
 	@Inject
 	private ClientUI(
 		RuneLiteProperties properties,
 		RuneLiteConfig config,
+		ConfigManager configManager,
 		MouseManager mouseManager,
 		@Nullable Applet client)
 	{
 		this.properties = properties;
 		this.config = config;
+		this.configManager = configManager;
 		this.mouseManager = mouseManager;
 		this.client = client;
 	}
@@ -189,8 +194,14 @@ public class ClientUI
 					frame.setContainedInScreen(config.containInScreen());
 					break;
 				case RuneLiteConfig.GAME_SIZE:
-					if (client == null)// || ((SplitPaneUI) splitPane.getUI()).getDivider().isBeingDragged())
+					if (client == null || ((SplitPaneUI) splitPane.getUI()).getDivider().isBeingDragged())
 						break;
+
+					if (gameResizedCount > 0)
+					{
+						gameResizedCount--;
+						break;
+					}
 
 					GameSize gameSize = config.gameSize();
 					Dimension clientSize = client.getSize();
@@ -200,7 +211,6 @@ public class ClientUI
 
 					if (changeWidth != 0 || changeHeight != 0)
 					{
-						gameSizeChanged = true;
 						Dimension size = frame.getSize();
 						size.width += changeWidth;
 						size.height += changeHeight;
@@ -220,8 +230,6 @@ public class ClientUI
 		{
 			final NavigationButton navigationButton = event.getButton();
 			final PluginPanel pluginPanel = navigationButton.getPanel();
-			final boolean inTitle = !event.getButton().isTab() &&
-				(config.enableCustomChrome() || SwingUtil.isCustomTitlePanePresent(frame));
 			final int iconSize = 16;
 
 			if (pluginPanel != null)
@@ -276,16 +284,21 @@ public class ClientUI
 				}
 			});
 
-			if (inTitle)
-			{
-				titleToolbar.addComponent(event.getButton(), button);
-			}
-			else
+			if (event.getButton().isTab())
 			{
 				pluginToolbar.addComponent(event.getButton(), button);
 			}
+			else
+			{
+				// Needs to be added to titleToolbar even if it's then added to pluginToolbar
+				// because of the way setCustomChromeEnabled() moves the buttons
+				titleToolbar.addComponent(event.getButton(), button);
+				if (!config.enableCustomChrome())
+					pluginToolbar.addComponent(event.getButton(), button);
+			}
 
-			if (config.storedSidebarSelectedTab() != null &&
+			if (event.getButton().isTab() &&
+				config.storedSidebarSelectedTab() != null &&
 				config.storedSidebarSelectedTab()
 					.isInstance(navigationButton.getPanel()))
 				button.doClick();
@@ -380,8 +393,8 @@ public class ClientUI
 			// Used to not spam config changed events
 			Timer updateGameSizeTimer = new Timer(100, e ->
 			{
-				// Set gameSizeChanged so the next config change event can be discarded
-				gameSizeChanged = true;
+				// Set gameResized so the next config change event can be discarded
+				gameResizedCount++;
 				config.setGameSize(new GameSize(client.getSize()));
 			});
 			updateGameSizeTimer.setRepeats(false);
@@ -392,10 +405,7 @@ public class ClientUI
 				@Override
 				public void componentResized(ComponentEvent e)
 				{
-					// Discard resize event if config was just changed
-					if (gameSizeChanged)
-						gameSizeChanged = false;
-					else if (client.isDisplayable() && !fullscreenEnabled)
+					if (client.isDisplayable() && !fullscreenEnabled)
 						updateGameSizeTimer.restart();
 				}
 			});
@@ -425,9 +435,7 @@ public class ClientUI
 				.icon(SIDEBAR_CLOSE)
 				.onClick(this::toggleSidebar)
 				.build();
-
 			sidebarNavigationJButton = SwingUtil.createSwingButton(sidebarNavigationButton, 0, null);
-
 			titleToolbar.addComponent(sidebarNavigationButton, sidebarNavigationJButton);
 
 			// Give focus to the game when any mouse click happens in the game area
@@ -495,7 +503,7 @@ public class ClientUI
 			if (firstRun)
 			{
 				firstRun = false;
-				// Send a message if the client isn't purposefully run as vanilla
+				// Send a message if the client isn't purposefully run as VANILLA or NONE
 				if (runelite.getUpdateMode() == ClientUpdateCheckMode.AUTO && !(client instanceof Client))
 					JOptionPane.showMessageDialog(frame,
 						"RuneLite has not yet been updated to work with the latest\n"
@@ -519,34 +527,32 @@ public class ClientUI
 		return false;
 	}
 
-	private void setCustomWindowChrome(boolean enabled)
+	private void setCustomWindowChrome(boolean enable)
 	{
-		customChromeEnabled = enabled;
-
 		boolean wasVisible = frame.isVisible();
 
 		// Required for changing decoration state
 		if (frame.isDisplayable())
 			frame.dispose();
 
-		frame.setUndecorated(enabled);
-		frame.getRootPane().setWindowDecorationStyle(enabled ? JRootPane.FRAME : JRootPane.NONE);
+		frame.setUndecorated(enable);
+		frame.getRootPane().setWindowDecorationStyle(enable ? JRootPane.FRAME : JRootPane.NONE);
 
-		for (NavigationButton navButton : titleToolbar.getComponentMap().keySet())
-			pluginToolbar.removeComponent(navButton);
-
-		if (enabled)
+		if (enable)
 		{
+			for (NavigationButton navButton : titleToolbar.getComponentMap().keySet())
+				pluginToolbar.removeComponent(navButton);
+
+			titleToolbar.update();
+
 			JComponent titleBar = SubstanceCoreUtilities.getTitlePaneComponent(frame);
 			replaceSubstanceTitleBarLayout();
 			titleBar.add(titleToolbar);
 		}
 		else
 		{
-			for (NavigationButton navButton : titleToolbar.getComponentMap().keySet())
-				pluginToolbar.addComponent(
-					navButton,
-					SwingUtil.createSwingButton(navButton, 0, null));
+			for (Map.Entry<NavigationButton, Component> entry : titleToolbar.getComponentMap().entrySet())
+				pluginToolbar.addComponent(entry.getKey(), entry.getValue());
 		}
 
 		if (wasVisible)

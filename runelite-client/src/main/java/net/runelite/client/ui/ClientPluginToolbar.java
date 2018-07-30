@@ -108,9 +108,9 @@ public class ClientPluginToolbar extends JToolBar
 			}
 
 			container.add(entry.getValue());
-			container.validate();
 		}
 
+		container.revalidate();
 		container.repaint();
 	}
 }

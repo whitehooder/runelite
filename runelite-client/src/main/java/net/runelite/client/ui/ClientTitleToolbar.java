@@ -130,7 +130,7 @@ class ClientTitleToolbar extends JPanel
 		});
 	}
 
-	void addComponent(final NavigationButton button, final Component c)
+	public void addComponent(final NavigationButton button, final Component c)
 	{
 		if (componentMap.put(button, c) == null)
 		{
@@ -138,7 +138,7 @@ class ClientTitleToolbar extends JPanel
 		}
 	}
 
-	void removeComponent(final NavigationButton button)
+	public void removeComponent(final NavigationButton button)
 	{
 		if (componentMap.remove(button) != null)
 		{
@@ -146,10 +146,11 @@ class ClientTitleToolbar extends JPanel
 		}
 	}
 
-	private void update()
+	public void update()
 	{
 		removeAll();
 		componentMap.values().forEach(this::add);
+		revalidate();
 		repaint();
 	}
 }
