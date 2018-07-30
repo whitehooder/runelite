@@ -728,6 +728,8 @@ public class ClientUI
 
 		if (config.automaticResizeType() == ExpandResizeType.KEEP_GAME_SIZE)
 			frame.resizeWidth(sidebarEnabled, pluginToolbar.getWidth());
+		else
+			frame.revalidateMinimumSize();
 
 		if (sidebarEnabled)
 		{
@@ -770,6 +772,8 @@ public class ClientUI
 
 		if (config.automaticResizeType() == ExpandResizeType.KEEP_GAME_SIZE)
 			frame.resizeWidth(navContainerEnabled, diffWidth);
+		else
+			frame.revalidateMinimumSize();
 
 		giveClientFocus();
 	}

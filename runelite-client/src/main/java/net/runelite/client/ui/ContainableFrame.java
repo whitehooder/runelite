@@ -137,10 +137,6 @@ public class ContainableFrame extends JFrame
 	{
 		int w = getWidth(), h = getHeight();
 		revalidateMinimumSize();
-//		if (isUndecorated())
-			setSize(w + (expand ? 1 : -1) * widthChange, h);
-//		else
-//			// Needed for system window borders in some cases (Gnome, KDE)
-//			SwingUtilities.invokeLater(() -> setSize(w + (expand ? 1 : -1) * widthChange, h));
+		setSize(w + (expand ? 1 : -1) * widthChange, h);
 	}
 }

@@ -30,6 +30,10 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
@@ -92,7 +96,7 @@ public class ClientPluginToolbar extends JToolBar
 
 	private void update()
 	{
-		removeAll();
+		container.removeAll();
 		boolean isDelimited = false;
 
 		for (final Map.Entry<NavigationButton, Component> entry : componentMap.entrySet())
@@ -100,12 +104,13 @@ public class ClientPluginToolbar extends JToolBar
 			if (!entry.getKey().isTab() && !isDelimited)
 			{
 				isDelimited = true;
-				addSeparator();
+				container.add(Box.createRigidArea(new Dimension(0, 5)));
 			}
 
-			add(entry.getValue());
+			container.add(entry.getValue());
+			container.validate();
 		}
 
-		repaint();
+		container.repaint();
 	}
 }
