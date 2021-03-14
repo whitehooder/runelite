@@ -533,7 +533,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		});
 		template.addInclude(GpuPlugin.class);
 
-		glProgram = PROGRAM.compile(gl, template);
+		glProgram = PROGRAM.compile(gl, template, false);
 		glUiProgram = UI_PROGRAM.compile(gl, template);
 
 		if (computeMode == ComputeMode.OPENGL)
@@ -548,6 +548,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		}
 
 		initUniforms();
+		validateProgram();
 	}
 
 	private void initUniforms()
@@ -574,6 +575,21 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		uniBlockSmall = gl.glGetUniformBlockIndex(glSmallComputeProgram, "uniforms");
 		uniBlockLarge = gl.glGetUniformBlockIndex(glComputeProgram, "uniforms");
 		uniBlockMain = gl.glGetUniformBlockIndex(glProgram, "uniforms");
+	}
+
+	private void validateProgram() throws ShaderException
+	{
+		gl.glUseProgram(glProgram);
+
+		gl.glUniform1i(uniTextures, 1); // texture sampler array is bound to texture1
+		gl.glUniform1i(uniShadowDepthMap, 2);
+		gl.glUniform1i(uniShadowColorMap, 3);
+		gl.glUniform1i(uniShadowColorDepthMap, 4);
+
+		Shader.validate(gl, glProgram);
+
+		gl.glUseProgram(0);
+		gl.glActiveTexture(GL_TEXTURE0);
 	}
 
 	private void shutdownProgram()
