@@ -1657,7 +1657,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //
 					try
 					{
-						int n = Constants.SCENE_SIZE-1;
+						int n = Constants.SCENE_SIZE - 1;
 						LocalPoint sw = tiles[plane][0][0].getLocalLocation();
 						LocalPoint ne = tiles[plane][n][n].getLocalLocation();
 						int swHeight = tileHeights[plane][0][0];
@@ -1708,7 +1708,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //				lightSpaceProjection.scale(shadowScale, shadowScale, 1);
 
 					// Calculate orthographic projection matrix for shadow mapping
-					lightSpaceProjection.makeOrtho(-dx/2, dx/2, -dy/2, dy/2, zNear * 2, zFar);
+					lightSpaceProjection.makeOrtho(-dx / 2, dx / 2, -dy / 2, dy / 2, zNear * 2, zFar);
 
 //				lightSpaceProjection.multMatrix(makeOrthographicProjectionMatrix(SHADOW_WIDTH, SHADOW_HEIGHT));
 
