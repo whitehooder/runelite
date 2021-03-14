@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2018-2021, Adam <Adam@sigterm.info>, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,33 @@ package net.runelite.client.plugins.gpu;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
+import net.runelite.client.config.Units;
 import static net.runelite.client.plugins.gpu.GpuPlugin.MAX_DISTANCE;
 import static net.runelite.client.plugins.gpu.GpuPlugin.MAX_FOG_DEPTH;
 import net.runelite.client.plugins.gpu.config.AntiAliasingMode;
 import net.runelite.client.plugins.gpu.config.ColorBlindMode;
+import net.runelite.client.plugins.gpu.config.FaceCullingMode;
+import net.runelite.client.plugins.gpu.config.DistanceFadeMode;
+import net.runelite.client.plugins.gpu.config.ProjectionDebugMode;
+import net.runelite.client.plugins.gpu.config.TextureResolution;
+import net.runelite.client.plugins.gpu.config.TintMode;
 import net.runelite.client.plugins.gpu.config.UIScalingMode;
 
 @ConfigGroup("gpu")
 public interface GpuPluginConfig extends Config
 {
+	@ConfigSection(
+		name = "Shadows",
+		description = "Options that configure shadows",
+		position = 12
+	)
+	String shadowSection = "shadowSection";
+
 	@Range(
-		max = MAX_DISTANCE
+		max = MAX_DISTANCE,
+		slider = true
 	)
 	@ConfigItem(
 		keyName = "drawDistance",
@@ -111,7 +126,6 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@Range(
-		min = 0,
 		max = 16
 	)
 	@ConfigItem(
@@ -145,5 +159,233 @@ public interface GpuPluginConfig extends Config
 	default boolean brightTextures()
 	{
 		return false;
+	}
+
+	@ConfigItem(
+		keyName = "enableShadows",
+		name = "Enable shadows",
+		description = "Enable directional shadows.",
+		position = 10,
+		section = shadowSection
+	)
+	default boolean enableShadows()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "enableShadowTranslucency",
+		name = "Enable translucency",
+		description = "Enable proper shadows for translucent objects.",
+		position = 11,
+		section = shadowSection
+	)
+	default boolean enableShadowTranslucency()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "shadowResolution",
+		name = "Shadow resolution",
+		description = "Higher = more crisp. If the resolution isn't supported, the max supported resolution will be used instead.",
+		position = 12,
+		section = shadowSection
+	)
+	default TextureResolution shadowResolution()
+	{
+		return TextureResolution.RES_4096x4096;
+	}
+
+	@ConfigItem(
+		keyName = "enableShadowMultisampling",
+		name = "Enable multisampling",
+		description = "Has a bigger impact on quality than shadow resolution, with a smaller impact on performance.",
+		position = 13,
+		section = shadowSection
+	)
+	default boolean enableShadowMultisampling()
+	{
+		return true;
+	}
+
+	@Range(
+		max = MAX_DISTANCE,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "shadowDistance",
+		name = "Shadow distance (WIP)",
+		description = "The longer the distance, the lower the shadow quality becomes. The detail will be improved considerably going forward. Baby steps :)",
+		position = 14,
+		section = shadowSection
+	)
+	default int maxShadowDistance()
+	{
+		return 30;
+	}
+
+	@ConfigItem(
+		keyName = "distanceFadeMode",
+		name = "Distance fade mode",
+		description = "Configures whether and how the shadow will fade out over distance.",
+		position = 15,
+		section = shadowSection
+	)
+	default DistanceFadeMode distanceFadeMode()
+	{
+		return DistanceFadeMode.ROUNDED;
+	}
+
+	@Units(Units.PERCENT)
+	@Range(
+		max = 100,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "shadowOpacity",
+		name = "Shadow opacity",
+		description = "Lower = softer shadows, higher = harder shadows.",
+		position = 16,
+		section = shadowSection
+	)
+	default int shadowOpacity()
+	{
+		return 50;
+	}
+
+	@Units(Units.PERCENT)
+	@Range(
+		max = 1000,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "shadowColorIntensity",
+		name = "Shadow color intensity",
+		description = "Only has an effect when colored shading is enabled.",
+		position = 17,
+		section = shadowSection
+	)
+	default int shadowColorIntensity()
+	{
+		return 100;
+	}
+
+	@ConfigItem(
+		keyName = "shadowSeparateOpacityAndColor",
+		name = "Separate opacity and color (TODO)",
+		description = "Lets you control color intensity regardless of shadow opacity.",
+		position = 18,
+		section = shadowSection
+	)
+	default boolean shadowSeparateOpacityAndColor()
+	{
+		return false;
+	}
+
+	@Units(Units.DEGREES)
+	@Range(
+		max = 360,
+		slider = true,
+		wrapAround = true
+	)
+	@ConfigItem(
+		keyName = "sunAngleHorizontal",
+		name = "Sun angle horizontal",
+		description = "Configures the angle of the sun in the horizontal direction. Hold Ctrl to restrict movement and Shift to slow down.",
+		position = 19,
+		section = shadowSection
+	)
+	default int sunAngleHorizontal()
+	{
+		return 320;
+	}
+
+	@Units(Units.DEGREES)
+	@Range(
+		max = 360,
+		slider = true,
+		wrapAround = true
+	)
+	@ConfigItem(
+		keyName = "sunAngleVertical",
+		name = "Sun angle vertical",
+		description = "Configures the angle of the sun in the vertical direction. Hold Ctrl to restrict movement and Shift to slow down.",
+		position = 20,
+		section = shadowSection
+	)
+	default int sunAngleVertical()
+	{
+		return 60;
+	}
+
+	@ConfigItem(
+		keyName = "useTimeBasedAngles",
+		name = "Time-synchronized sun (WIP)",
+		description = "Synchronizes shadows with global UTC time.",
+		position = 21,
+		section = shadowSection
+	)
+	default boolean useTimeBasedAngles()
+	{
+		return true;
+	}
+
+	@ConfigItem(
+		keyName = "tintMode",
+		name = "Color tint mode",
+		description = "Configures color tint/time of day.",
+		position = 22,
+		section = shadowSection
+	)
+	default TintMode tintMode()
+	{
+		return TintMode.NORMAL;
+	}
+
+	@ConfigItem(
+		keyName = "colorPassFaceCulling",
+		name = "Color face culling",
+		description = "Configures which faces are culled when rendering the translucency maps. No culling would look perhaps look best if it wasn't for the client automatically culling some faces anyway.",
+		position = 23,
+		section = shadowSection
+	)
+	default FaceCullingMode colorPassFaceCulling()
+	{
+		return FaceCullingMode.DISABLED;
+	}
+
+	@ConfigItem(
+		keyName = "speedUpTime",
+		name = "Speed up time",
+		description = "One day takes one minute.",
+		position = 24,
+		section = shadowSection
+	)
+	default boolean speedUpTime()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "enableDebugMode",
+		name = "Enable debug overlay",
+		description = "Displays the different textures used for shadow mapping.",
+		position = 29
+	)
+	default boolean enableDebugMode()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "projectionDebugMode",
+		name = "Projection debug mode",
+		description = "Select debug projection to use for the viewport.",
+		position = 30
+	)
+	default ProjectionDebugMode projectionDebugMode()
+	{
+		return ProjectionDebugMode.DISABLED;
 	}
 }
