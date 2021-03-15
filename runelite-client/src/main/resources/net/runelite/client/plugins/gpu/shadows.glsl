@@ -111,26 +111,18 @@ vec4 applyShadows(vec4 c) {
 //            return c;
 
         float shadow = sampleDepthMap(shadowDepthMap, coords);
-        if (shadowMappingTechnique == 1) {
-            // Percentage Closer Filtering tends to be darker due to some self shadowing without a larger bias,
-            // so we artificially increase contrast to make it less apparent
-//            shadow = pow(shadow, 4);
-        }
-
         if (shadow > 0) {
             c.rgb *= 1 - shadow * shadowOpacity * distanceFadeOpacity;
         }
 
-        if (enableShadowTranslucency) {
-            vec2 colorUv = coords.xy; // closes tiny gaps between shadow and color
-
+        if (enableShadowTranslucency && shadow < .1) {
             if (c.a != 1) {
                 // The Z value is only used by sampleDepthMap
                 coords.z += translucencyOffset;
             }
 
             float translucentShadow = sampleDepthMap(shadowColorDepthMap, coords);
-            vec3 translucentShadowColor = sampleColorMap(shadowColorMap, colorUv);
+            vec3 translucentShadowColor = sampleColorMap(shadowColorMap, coords.xy);
 
             float opacity = translucentShadow * distanceFadeOpacity;
             vec3 shadowColor = translucentShadowColor;
