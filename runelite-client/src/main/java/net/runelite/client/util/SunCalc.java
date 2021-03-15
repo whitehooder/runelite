@@ -112,7 +112,7 @@ public class SunCalc
 			(1 + cos(inc)) / 2, // fraction
 			0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / Math.PI, // phase
 			angle
-    	};
+		};
 	}
 
 	public static double toJulian(long millis)
