@@ -31,12 +31,6 @@ layout (location = 1) in vec4 uv;
 uniform float brightness;
 uniform mat4 lightSpaceProjectionMatrix;
 
-//out float alpha;
-//flat out int textureId;
-//out vec2 fUv;
-//out vec4 Color;
-//noperspective centroid out float fHsl;
-
 out vec4 Color;
 noperspective centroid out float fHsl;
 flat out int textureId;
@@ -47,36 +41,16 @@ out float fogAmount;
 
 void main()
 {
-  ivec3 vertex = VertexPosition.xyz;
-  int ahsl = VertexPosition.w;
-  int hsl = ahsl & 0xffff;
-  float a = float(ahsl >> 24 & 0xff) / 255.f;
+    ivec3 vertex = VertexPosition.xyz;
+    int ahsl = VertexPosition.w;
+    int hsl = ahsl & 0xffff;
+    float a = float(ahsl >> 24 & 0xff) / 255.f;
 
-  vec3 rgb = hslToRgb(hsl);
+    vec3 rgb = hslToRgb(hsl);
 
-  gl_Position = lightSpaceProjectionMatrix * vec4(vertex, 1.f);
-  Color = vec4(rgb, 1.f - a);
-  fHsl = float(hsl);
-  textureId = int(uv.x);
-  fUv = uv.yz;
-
-
-
-//  gl_Position = lightSpaceProjectionMatrix * vec4(pos.xyz, 1.f);
-//
-//  alpha = 1.f - float(pos.w >> 24 & 0xff) / 255.f;
-//
-//  textureId = int(uv.x);
-//  fUv = uv.yz;
-
-
-
-  //  int ahsl = pos.w;
-  //  int hsl = ahsl & 0xffff;
-  //  float a = float(ahsl >> 24 & 0xff) / 255.f;
-//
-//  vec3 rgb = hslToRgb(hsl);
-//
-//  Color = vec4(rgb, 1.f - a);
-//  fHsl = float(hsl);
+    gl_Position = lightSpaceProjectionMatrix * vec4(vertex, 1.f);
+    Color = vec4(rgb, 1.f - a);
+    fHsl = float(hsl);
+    textureId = int(uv.x);
+    fUv = uv.yz;
 }

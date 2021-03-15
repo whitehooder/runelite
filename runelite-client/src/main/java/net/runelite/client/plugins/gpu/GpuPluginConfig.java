@@ -37,6 +37,7 @@ import net.runelite.client.plugins.gpu.config.ColorBlindMode;
 import net.runelite.client.plugins.gpu.config.FaceCullingMode;
 import net.runelite.client.plugins.gpu.config.DistanceFadeMode;
 import net.runelite.client.plugins.gpu.config.ProjectionDebugMode;
+import net.runelite.client.plugins.gpu.config.ShadowMappingTechnique;
 import net.runelite.client.plugins.gpu.config.TextureResolution;
 import net.runelite.client.plugins.gpu.config.TintMode;
 import net.runelite.client.plugins.gpu.config.UIScalingMode;
@@ -198,15 +199,15 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "enableShadowMultisampling",
-		name = "Enable multisampling",
-		description = "Has a bigger impact on quality than shadow resolution, with a smaller impact on performance.",
+		keyName = "shadowMappingTechnique",
+		name = "Technique",
+		description = "Configure which technique is used for shadow mapping. These can have a large impact on performance and quality. Note even numbers shift the shadow by half a texture coordinate.",
 		position = 13,
 		section = shadowSection
 	)
-	default boolean enableShadowMultisampling()
+	default ShadowMappingTechnique shadowMappingTechnique()
 	{
-		return true;
+		return ShadowMappingTechnique.VARIANCE_SHADOW_MAPS;
 	}
 
 	@Range(
@@ -256,7 +257,7 @@ public interface GpuPluginConfig extends Config
 
 	@Units(Units.PERCENT)
 	@Range(
-		max = 1000,
+		max = 500,
 		slider = true
 	)
 	@ConfigItem(
@@ -269,18 +270,6 @@ public interface GpuPluginConfig extends Config
 	default int shadowColorIntensity()
 	{
 		return 100;
-	}
-
-	@ConfigItem(
-		keyName = "shadowSeparateOpacityAndColor",
-		name = "Separate opacity and color (TODO)",
-		description = "Lets you control color intensity regardless of shadow opacity.",
-		position = 18,
-		section = shadowSection
-	)
-	default boolean shadowSeparateOpacityAndColor()
-	{
-		return false;
 	}
 
 	@Units(Units.DEGREES)

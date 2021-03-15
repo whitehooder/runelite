@@ -1,0 +1,66 @@
+/*
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package net.runelite.client.plugins.gpu.config;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public enum ShadowMappingTechnique
+{
+	BASIC("Basic", 0, 0),
+	PERCENTAGE_CLOSER_FILTERING_2X2("PCF 2x2", 1, 2),
+	PERCENTAGE_CLOSER_FILTERING_3X3("PCF 3x3", 1, 3),
+	PERCENTAGE_CLOSER_FILTERING_4X4("PCF 4x4", 1, 4),
+	PERCENTAGE_CLOSER_FILTERING_5X5("PCF 5x5", 1, 5),
+	PERCENTAGE_CLOSER_FILTERING_6X6("PCF 6x6", 1, 6),
+	PERCENTAGE_CLOSER_FILTERING_7X7("PCF 7x7", 1, 7),
+	PERCENTAGE_CLOSER_FILTERING_8X8("PCF 8x8", 1, 8),
+	PERCENTAGE_CLOSER_FILTERING_9X9("PCF 9x9", 1, 9),
+	PERCENTAGE_CLOSER_FILTERING_10X10("PCF 10x10", 1, 10),
+	PERCENTAGE_CLOSER_FILTERING_11X11("PCF 11x11", 1, 11),
+	PERCENTAGE_CLOSER_FILTERING_12X12("PCF 12x12", 1, 12),
+	PERCENTAGE_CLOSER_FILTERING_13X13("PCF 13x13", 1, 13),
+	PERCENTAGE_CLOSER_FILTERING_14X14("PCF 14x14", 1, 14),
+	PERCENTAGE_CLOSER_FILTERING_15X15("PCF 15x15", 1, 15),
+	PERCENTAGE_CLOSER_FILTERING_16X16("PCF 16x16", 1, 16),
+	PERCENTAGE_CLOSER_FILTERING_17X17("PCF 17x17", 1, 17),
+	PERCENTAGE_CLOSER_FILTERING_18X18("PCF 18x18", 1, 18),
+	PERCENTAGE_CLOSER_FILTERING_19X19("PCF 19x19", 1, 19),
+	PERCENTAGE_CLOSER_FILTERING_20X20("PCF 20x20", 1, 20),
+	PERCENTAGE_CLOSER_FILTERING_21X21("PCF 21x21", 1, 21),
+	VARIANCE_SHADOW_MAPS("Variance (TODO)", 2, 0);
+
+	private final String name;
+	private final int id;
+	private final int kernelSize;
+
+	@Override
+	public String toString()
+	{
+		return name;
+	}
+}

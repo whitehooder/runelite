@@ -41,7 +41,8 @@ uniform int distanceFadeMode;
 uniform bool enableDebug;
 uniform bool enableShadows;
 uniform bool enableShadowTranslucency;
-uniform bool enableShadowMultisampling;
+uniform int shadowMappingTechnique;
+uniform int shadowMappingKernelSize;
 uniform bool shadowSeparateOpacityAndColor;
 
 uniform float shadowOpacity;
@@ -62,7 +63,6 @@ out vec4 FragColor;
 
 #include hsl_to_rgb.glsl
 #include colorblind.glsl
-#include hsl_funcs.glsl
 #include shadows.glsl
 
 void main() {
@@ -91,20 +91,20 @@ void main() {
     switch (tintMode)
     {
         case 1:// NIGHT
-        c.rgb *= vec3(.3f, .3f, .5f);
-        break;
+            c.rgb *= vec3(.3f, .3f, .5f);
+            break;
         case 2:// SUNRISE
-        c.rgb *= vec3(.734f, .262f, .142f);
-        break;
+            c.rgb *= vec3(.734f, .262f, .142f);
+            break;
         case 3:// SUNSET
-        c.rgb *= vec3(.958f, .408f, .294f);
-        break;
+            c.rgb *= vec3(.958f, .408f, .294f);
+            break;
         case 4:// BRIGHT DAY
-        c.rgb *= pow(vec3(1.1f), vec3(3));
-        break;
+            c.rgb *= pow(vec3(1.1f), vec3(3));
+            break;
         case 5:// BLOOD_RED
-        c.rgb *= vec3(136 / 255.f, 8 / 255.f, 8 / 255.f);
-        break;
+            c.rgb *= vec3(136 / 255.f, 8 / 255.f, 8 / 255.f);
+            break;
     }
 
     vec3 mixedColor = mix(c.rgb, fogColor.rgb, fogAmount);

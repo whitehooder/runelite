@@ -31,6 +31,7 @@ uniform int renderPass;
 uniform float brightness;
 uniform float smoothBanding;
 uniform float textureLightMode;
+uniform float minimumOpacity = .1;
 
 uniform float translucencyOffset;
 
@@ -81,16 +82,12 @@ void main() {
         if (c.a >= alphaThreshold) {
             discard;
         } else {
-            FragColor = c;
-//            FragColor = vec4(c.rgb, c.a * .1); // testing lower alpha
-//            FragColor = c * c.a; // testing premultiplied alpha
-//            FragColor = vec4(c.rgb * 2, c.a * 0.5); // testing stronger colors
-//            if (c.a > 0.3)
-//                c.a = 0.3;
-//            c.rgb *= c.a; // no use premultiplying alpha since we need the alpha value for shadow mixing
-//            FragColor = vec4(pow(c.rgb, vec3(1)), pow(c.a, 1)); // testing stronger colors
+            // Makes shadows from things like glass appear more like you would expect
+            if (c.a < minimumOpacity)
+                c.a = minimumOpacity;
             // Move translucent objects sligthly towards the camera since they often intersect
             gl_FragDepth = gl_FragCoord.z - translucencyOffset;
+            FragColor = c * c.a; // Pre-multiply alpha
         }
     }
 

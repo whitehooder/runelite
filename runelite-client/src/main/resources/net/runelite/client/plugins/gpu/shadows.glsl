@@ -24,63 +24,72 @@
  */
 #define PI 3.1415926535897932384626433832795f
 
+#include color_funcs.glsl
+
+float nightTransitionThreshold = PI / 5.f;
+
+// TODO: once settled on a number of kernel sizes for PCF, we should unroll them for better performance
+
 float sampleDepthMap(sampler2D tex, vec3 coords) {
-    if (!enableShadowMultisampling)
-    {
-        return coords.z > texture(tex, coords.xy).r ? 1.0 : 0.0;
-    }
+    switch (shadowMappingTechnique) {
+        case 0: // Basic
+            return coords.z > texture(tex, coords.xy).r ? 1.0 : 0.0;
+        case 1: // PCF
+            int n = shadowMappingKernelSize;
+            int to = n / 2;
+            int from = to - n + 1;
 
-    int n = 1;
-
-    float shadow = 0;
-    vec2 size = textureSize(tex, 0);
-    vec2 texelSize = 1.0 / size;
-    for (int x = -n; x <= n; ++x)
-    {
-        for (int y = -n; y <= n; ++y)
-        {
-            float pcfDepth = texture(tex, coords.xy + vec2(x, y) * texelSize).r;
-            if (coords.x < size.x)
-            shadow += coords.z > pcfDepth ? 1.0 : 0.0;
-        }
+            float shadow = 0;
+            vec2 size = textureSize(tex, 0);
+            float xSize = 1.0 / size.x;
+            float ySize = 1.0 / size.y;
+            for (int x = from; x <= to; ++x) {
+                for (int y = from; y <= to; ++y) {
+                    float pcfDepth = texture(tex, coords.xy + vec2(x * xSize, y * ySize)).r;
+                    shadow += coords.z > pcfDepth ? 1.0 : 0.0;
+                }
+            }
+            return shadow / pow(n, 2);
+        default:
+            return 0;
     }
-    return shadow / 9.0; // only for n = 1
-    //    return shadow / pow(n * 2 + 1, 2);
 }
 
-vec4 sampleColorMap(sampler2D tex, vec2 coords) {
-    if (!enableShadowMultisampling)
-    {
-        return texture(tex, coords);
-    }
+vec3 sampleColorMap(sampler2D tex, vec2 coords) {
+    switch (shadowMappingTechnique) {
+        case 0: // Basic
+            return texture(tex, coords).rgb;
+        case 1: // PCF
+            int n = shadowMappingKernelSize;
+            int to = n / 2;
+            int from = to - n + 1;
 
-    vec4 color = vec4(0);
-    vec2 size = textureSize(tex, 0);
-    vec2 texelSize = 1.0 / size;
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            vec4 samp = texture(tex, coords + vec2(x, y) * texelSize);
-            color += samp;
-        }
+            vec3 c = vec3(0);
+            vec2 size = textureSize(tex, 0);
+            float xSize = 1.0 / size.x;
+            float ySize = 1.0 / size.y;
+            for (int x = from; x <= to; ++x)
+                for (int y = from; y <= to; ++y)
+                    c += texture(tex, coords + vec2(x * xSize, y * ySize)).rgb;
+            return c / pow(n, 2);
+        default:
+            return vec3(1);
     }
-    return color / 9.0;
 }
 
 vec4 applyShadows(vec4 c) {
     if (!enableShadows)
         return c;
 
-    float nightTransitionThreshold = PI / 5.f;
-
     vec3 coords = fragPosLightSpace.xyz / fragPosLightSpace.w * .5 + .5;
-    // Seems like a lot of checks, maybe worth thinking through
     if (coords.z <= 1 && coords.x >= 0 && coords.x <= 1 && coords.y >= 0 && coords.y <= 1) {
         // Apply bias to prevent flat surfaces casting shadows on themselves
         float bias = 0.0001;
         //bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
         // TODO: geometry shader to generate some okay enough surface normals?
+        if (shadowMappingTechnique == 1) {
+            bias = min(0.002, 0.0005 * shadowMappingKernelSize);
+        }
         coords.z -= bias;
 
         float distanceFadeOpacity = 1;
@@ -102,15 +111,17 @@ vec4 applyShadows(vec4 c) {
 //            return c;
 
         float shadow = sampleDepthMap(shadowDepthMap, coords);
-        if (enableShadowMultisampling) {
-            // multisampled shadow tends to be darker due to some self shadowing currently, so artificially increase contrast
-            shadow = pow(shadow, 4);
+        if (shadowMappingTechnique == 1) {
+            // Percentage Closer Filtering tends to be darker due to some self shadowing without a larger bias,
+            // so we artificially increase contrast to make it less apparent
+//            shadow = pow(shadow, 4);
         }
 
-        //            if (shadow < 0.9 && enableShadowTranslucency && c.a > 0.01) {
-        if (!enableShadowTranslucency || shadow > .95) {
+        if (shadow > 0) {
             c.rgb *= 1 - shadow * shadowOpacity * distanceFadeOpacity;
-        } else {
+        }
+
+        if (enableShadowTranslucency) {
             vec2 colorUv = coords.xy; // closes tiny gaps between shadow and color
 
             if (c.a != 1) {
@@ -119,30 +130,32 @@ vec4 applyShadows(vec4 c) {
             }
 
             float translucentShadow = sampleDepthMap(shadowColorDepthMap, coords);
-            vec4 translucentShadowColor = sampleColorMap(shadowColorMap, colorUv);
+            vec3 translucentShadowColor = sampleColorMap(shadowColorMap, colorUv);
 
             float opacity = translucentShadow * distanceFadeOpacity;
-            vec3 shadowColor = translucentShadowColor.rgb;
+            vec3 shadowColor = translucentShadowColor;
 
-            vec3 hsl = rgb2hsl(shadowColor);
-
-            hsl.r = mod(hsl.r + .5, 1); // Invert hue due to blend function inverting initially
-            hsl.g = hsl.g * shadowColorIntensity; // Multiply saturation unbounded
-
-            if (shadowSeparateOpacityAndColor) {
-                // TODO: not implemented
-                shadowColor = hsl2rgb(hsl);
-                c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity);
+            // Invert hue due to blend function inverting color initially
+            // If reducing intensity, multiply HSL saturation by intensity
+            // If increasing intensity, multiply HSV value by intensity
+            if (shadowColorIntensity < 1) {
+                vec3 hsl = rgbToHsl(shadowColor);
+                hsl.x = mod(hsl.x + .5, 1);
+                hsl.y *= shadowColorIntensity;
+                shadowColor = hslToRgb(hsl);
             } else {
-                // Analogous to real life where no light can be added since what you see is reflected light
-                shadowColor = hsl2rgb(hsl);
-                c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity);
+                vec3 hsv = rgbToHsv(shadowColor);
+                hsv.x = mod(hsv.x + .5, 1);
+                hsv.z *= shadowColorIntensity;
+                shadowColor = hsvToRgb(hsv);
             }
+
+            c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity);
         }
     }
 
     if (enableDebug) {
-        float tileSize = 600;
+        float tileSize = 300;
         float offsetLeft = 0;
         float offsetBottom = 0;
 
@@ -170,15 +183,15 @@ vec4 applyShadows(vec4 c) {
         uv += postOffset;
 
         if (tileX == 0) {
-            if (tileY == 0 && false) {
+            if (tileY == 0 ) {
                 return vec4(vec3(texture(shadowDepthMap, uv).r), overlayAlpha);
-            } else if (tileY == 1 && false) {
+            } else if (tileY == 1) {
                 float translucentDepth = texture(shadowColorDepthMap, uv).r;
                 return FragColor = vec4(vec3(translucentDepth), overlayAlpha);
-            } else if (tileY == 0) {
+            } else if (tileY == 2) {
                 vec4 color = texture(shadowColorMap, uv);
                 return FragColor = vec4(color.rgb, overlayAlpha);
-            } else if (tileY == 1) {
+            } else if (tileY == 3) {
                 vec4 color = texture(shadowColorMap, uv);
                 return FragColor = vec4(vec3(color.a), overlayAlpha);
             }
