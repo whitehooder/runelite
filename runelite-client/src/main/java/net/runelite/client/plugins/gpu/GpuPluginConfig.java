@@ -357,6 +357,30 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "latitude",
+		name = "Latitude",
+		description = "Configure latitude coordinates to use for calculating the sun position.",
+		position = 25,
+		section = shadowSection
+	)
+	default String latitude()
+	{
+		return "0";
+	}
+
+	@ConfigItem(
+		keyName = "longitude",
+		name = "Longitude",
+		description = "Configure longitude coordinates to use for calculating the sun position.",
+		position = 26,
+		section = shadowSection
+	)
+	default String longitude()
+	{
+		return "0";
+	}
+
+	@ConfigItem(
 		keyName = "enableDebugMode",
 		name = "Enable debug overlay",
 		description = "Displays the different textures used for shadow mapping.",
