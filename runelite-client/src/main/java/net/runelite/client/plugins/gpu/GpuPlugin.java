@@ -42,7 +42,6 @@ import static com.jogamp.opengl.GL.GL_DEPTH_BUFFER_BIT;
 import static com.jogamp.opengl.GL.GL_DEPTH_COMPONENT16;
 import static com.jogamp.opengl.GL.GL_DEPTH_TEST;
 import static com.jogamp.opengl.GL.GL_DRAW_FRAMEBUFFER;
-import static com.jogamp.opengl.GL.GL_DST_ALPHA;
 import static com.jogamp.opengl.GL.GL_DYNAMIC_DRAW;
 import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_FRAMEBUFFER;
@@ -59,8 +58,9 @@ import static com.jogamp.opengl.GL.GL_ONE;
 import static com.jogamp.opengl.GL.GL_ONE_MINUS_SRC_ALPHA;
 import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_RENDERBUFFER;
+import static com.jogamp.opengl.GL.GL_RGB;
+import static com.jogamp.opengl.GL.GL_RGB8;
 import static com.jogamp.opengl.GL.GL_RGBA;
-import static com.jogamp.opengl.GL.GL_RGBA8;
 import static com.jogamp.opengl.GL.GL_SRC_ALPHA;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
 import static com.jogamp.opengl.GL.GL_TEXTURE0;
@@ -75,7 +75,6 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL.GL_TRIANGLES;
 import static com.jogamp.opengl.GL.GL_TRIANGLE_FAN;
 import static com.jogamp.opengl.GL.GL_UNSIGNED_BYTE;
-import static com.jogamp.opengl.GL.GL_ZERO;
 import static com.jogamp.opengl.GL2ES2.GL_CLAMP_TO_BORDER;
 import static com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT;
 import static com.jogamp.opengl.GL2ES2.GL_DEBUG_SEVERITY_NOTIFICATION;
@@ -190,7 +189,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	static final int MAX_FOG_DEPTH = 100;
 
 	// TODO: This might have to be a small amount above 0 to fix intersecting objects, if not it should be removed
-	private static final float TRANSLUCENCY_OFFSET = -.001f; // 0.001 is too high at least. it makes glass panes appear above curtains in POH
+	private static final float TRANSLUCENCY_OFFSET = 0; // .001 is too high at least. it makes glass panes appear above curtains in POH
 
 	@Inject
 	private Client client;
@@ -387,12 +386,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniEnableDebug;
 
 	// Shadow uniforms
-	private int uniEnableShadowMultisampling;
-	private int uniShadowSeparateOpacityAndColor;
+	private int uniShadowMappingTechnique;
 	private int uniShadowBrightness;
 	private int uniShadowDepthMap;
 	private int uniShadowColorDepthMap;
 	private int uniShadowColorMap;
+	private int uniShadowMappingKernelSize;
 	private int uniShadowOpacity;
 	private int uniShadowColorIntensity;
 	private int uniShadowLightSpaceProjectionMatrix;
@@ -774,8 +773,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		uniEnableShadowTranslucency = gl.glGetUniformLocation(glProgram, "enableShadowTranslucency");
 		uniShadowOpacity = gl.glGetUniformLocation(glProgram, "shadowOpacity");
 		uniShadowColorIntensity = gl.glGetUniformLocation(glProgram, "shadowColorIntensity");
-		uniEnableShadowMultisampling = gl.glGetUniformLocation(glProgram, "enableShadowMultisampling");
-		uniShadowSeparateOpacityAndColor = gl.glGetUniformLocation(glProgram, "shadowSeparateOpacityAndColor");
+		uniShadowMappingTechnique = gl.glGetUniformLocation(glProgram, "shadowMappingTechnique");
 
 		uniShadowDepthMap = gl.glGetUniformLocation(glProgram, "shadowDepthMap");
 		uniShadowColorMap = gl.glGetUniformLocation(glProgram, "shadowColorMap");
@@ -791,6 +789,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		uniShadowTextureLightMode = gl.glGetUniformLocation(glShadowProgram, "textureLightMode");
 
 		// Miscellaneous
+		uniShadowMappingKernelSize = gl.glGetUniformLocation(glProgram, "shadowMappingKernelSize");
 		uniTranslucencyOffset = gl.glGetUniformLocation(glProgram, "translucencyOffset");
 		uniShadowTranslucencyOffset = gl.glGetUniformLocation(glShadowProgram, "translucencyOffset");
 		uniShadowPitch = gl.glGetUniformLocation(glProgram, "shadowPitch");
@@ -835,6 +834,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 	private void initVao()
 	{
+
 		// Create VAO
 		vaoHandle = glGenVertexArrays(gl);
 
@@ -1035,15 +1035,14 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 			texShadowColorMap = glGenTexture(gl);
 			gl.glBindTexture(GL_TEXTURE_2D, texShadowColorMap);
-			gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-				SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, null);
+			gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,
+				SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_RGB, GL_FLOAT, null);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			gl.glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-			// Bind texture to framebuffer
+			// Bind texture to FBO
 			gl.glBindFramebuffer(GL_FRAMEBUFFER, fboShadowColor);
 			gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texShadowColorDepthMap, 0);
 			gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texShadowColorMap, 0);
@@ -1468,6 +1467,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			{
 				textureManager.setAnisotropicFilteringLevel(textureArrayId, anisotropicFilteringLevel, gl);
 				lastAnisotropicFilteringLevel = anisotropicFilteringLevel;
+
 			}
 
 			if (client.isStretchedEnabled())
@@ -1620,15 +1620,13 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				}
 				else
 				{
+					// All of this is rather arbitrary
 					// TODO: change to actually map to tile distance
 
 					float shadowAspectRatio = (float) SHADOW_WIDTH / (float) SHADOW_HEIGHT;
-					float shadowResolution = 1024.f / SHADOW_WIDTH * shadowAspectRatio;
-					float shadowScale = (1.1f - config.maxShadowDistance() / 90.f) / shadowResolution;
-//				float shadowScale = 1.75f - config.maxShadowDistance() / 90.f;
+					float shadowResolution = 1024.f / SHADOW_WIDTH;
 
 					float shadowDistance = config.maxShadowDistance() / 90.f;
-//				log.debug("shadowScale: " + shadowDistance);
 
 					Tile[][][] tiles = client.getScene().getTiles();
 					int[][][] tileHeights = client.getTileHeights();
@@ -1637,24 +1635,13 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 					int offsetX = -loc.getX(), offsetY = -loc.getY(), offsetZ = 0;
 
-//				float[][] bounds = ((BoundsTrackingGpuIntBuffer) this.vertexBuffer).getBoundingBox();
-////				log.debug(String.format("x: [%.1f, %.1f], y: [%.1f, %.1f], z: [%.1f, %.1f]",
-////					bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1], bounds[2][0], bounds[2][1]));
-//
-//				float left = bounds[0][0];
-//				float right = bounds[0][1];
-//				float bottom = bounds[1][0];
-//				float top = bounds[1][1];
-//				float zNear = bounds[2][0];
-//				float zFar = bounds[2][1];
-
-					float left = -SHADOW_WIDTH / shadowAspectRatio;
-					float right = SHADOW_WIDTH / shadowAspectRatio;
+					float left = -SHADOW_WIDTH * shadowAspectRatio;
+					float right = SHADOW_WIDTH * shadowAspectRatio;
 					float bottom = -SHADOW_HEIGHT;
 					float top = SHADOW_HEIGHT;
 					float zNear = 0;
 					float zFar = 10000;
-//
+
 					try
 					{
 						int n = Constants.SCENE_SIZE - 1;
@@ -1663,8 +1650,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						int swHeight = tileHeights[plane][0][0];
 						int neHeight = tileHeights[plane][n][n];
 
-						left = sw.getX();
-						right = ne.getX();
+						left = sw.getX() / shadowAspectRatio;
+						right = ne.getX() / shadowAspectRatio;
 						bottom = sw.getY();
 						top = ne.getY();
 
@@ -1685,32 +1672,22 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					catch (Exception ex)
 					{
 						// Shouldn't get here
+						// TODO: already noticed it sometimes gets here
 						log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
 					}
 
 					zNear -= 10000 * shadowResolution;
 					zFar += 20000 * shadowResolution;
 
-					float dx = right - left;
+					float dx = (right - left) * 2;
 					float dy = top - bottom;
 					float dz = zFar - zNear;
 
-//				log.debug("dx: " + dx + ", dy: " + dy + ", dz: " + dz);
-
-//				log.debug(String.format(
-//					"left: %.1f, right: %.1f, bottom: %.1f, top: %.1f, zNear: %.1f, zFar: %.1f, dx: %.1f, dy: %.1f, dz: %.1f",
-//					left, right, bottom, top, zNear, zFar, dx, dy, dz));
-
 					float projZoom = 1.f / shadowDistance;
-//				float projZoom = shadowScale;
-//				log.debug("zoom: " + projZoom);
 					lightSpaceProjection.scale(projZoom, projZoom, 1);
-//				lightSpaceProjection.scale(shadowScale, shadowScale, 1);
 
 					// Calculate orthographic projection matrix for shadow mapping
 					lightSpaceProjection.makeOrtho(-dx / 2, dx / 2, -dy / 2, dy / 2, zNear * 2, zFar);
-
-//				lightSpaceProjection.multMatrix(makeOrthographicProjectionMatrix(SHADOW_WIDTH, SHADOW_HEIGHT));
 
 					lightSpaceProjection.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
 					lightSpaceProjection.rotate((float) shadowYaw, 0, 1, 0);
@@ -1720,22 +1697,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						offsetZ,
 						offsetY
 					);
-
-//				lightSpaceProjection.translate(-dx/2, -dy/2, -dz/2);
-
-//				lightSpaceProjection.translate(
-//					offsetX,
-//					offsetZ,
-//					offsetY
-//				);
-
-//				lightSpaceProjection.translate(
-//					-client.getCameraX(),
-//					-client.getCameraZ(),
-//					-client.getCameraY());
-//					-(loc.getX() + offsetX),
-//					-client.getCameraZ(),
-//					-(loc.getY() + offsetY));
 
 					lightSpaceProjectionMatrix = lightSpaceProjection.getMatrix();
 
@@ -1809,14 +1770,19 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //							GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA,
 //							GL_DST_ALPHA, GL_ZERO);
 
-						// TODO: possibly remove alpha channel from output since it's not needed with this blend function
-						// Blending analogous to real life, but we end up with inverted colors
-						gl.glBlendEquationSeparate(
-							GL_FUNC_REVERSE_SUBTRACT,
-							GL_FUNC_ADD);
-						gl.glBlendFuncSeparate(
-							GL_SRC_ALPHA, GL_ONE,
-							GL_DST_ALPHA, GL_ZERO);
+						// Order independent blending hack, but we end up with inverted colors
+//						gl.glBlendEquationSeparate(
+//							GL_FUNC_REVERSE_SUBTRACT,
+//							GL_FUNC_ADD);
+//						gl.glBlendFuncSeparate(
+//							GL_SRC_ALPHA, GL_ONE,
+//							GL_DST_ALPHA, GL_ZERO);
+
+						// Same blending, but with pre-multiplied alpha
+//						gl.glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+//						gl.glBlendFunc(GL_ONE, GL_ONE);
+						gl.glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+						gl.glBlendFunc(GL_ONE, GL_ONE);
 
 						// This makes it so no fragments get culled because of depth
 						gl.glDepthFunc(GL_ALWAYS);
@@ -1834,7 +1800,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 						// Perform the second render pass
 						gl.glDrawArrays(GL_TRIANGLES, 0, targetBufferOffset);
-						gl.glCullFace(GL_BACK);
 					}
 
 					// Cleanup
@@ -1994,22 +1959,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //						);
 //						projectionMatrix = projection.getMatrix();
 
-						projectionMatrix = makeOrthographicProjectionMatrix(viewportWidth, viewportHeight);
+//						projectionMatrix = makeOrthographicProjectionMatrix(viewportWidth, viewportHeight);
 
-//						projection.makeOrtho(
-//							left,
-//							right,
-//							bottom,
-//							top,
-//							Integer.MIN_VALUE, Integer.MAX_VALUE);
-//						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projection.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix = projection.getMatrix();
 
 //						projection.scale(client.getScale() / 1024.f, client.getScale() / 1024.f, 1);
 //						projection.makeOrtho(
@@ -2100,8 +2051,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			// Bind shadow-related uniforms
 			gl.glUniform1i(uniEnableShadows, shadowsEnabled ? 1 : 0);
 			gl.glUniform1i(uniEnableShadowTranslucency, shadowTranslucencyEnabled ? 1 : 0);
-			gl.glUniform1i(uniEnableShadowMultisampling, config.enableShadowMultisampling() ? 1 : 0);
-			gl.glUniform1i(uniShadowSeparateOpacityAndColor, config.shadowSeparateOpacityAndColor() ? 1 : 0);
+			gl.glUniform1i(uniShadowMappingTechnique, config.shadowMappingTechnique().getId());
+			gl.glUniform1i(uniShadowMappingKernelSize, config.shadowMappingTechnique().getKernelSize());
 			gl.glUniform1f(uniTranslucencyOffset, TRANSLUCENCY_OFFSET);
 			gl.glUniform1f(uniShadowYaw, (float) shadowYaw);
 			gl.glUniform1f(uniShadowPitch, (float) shadowPitch);
@@ -2126,7 +2077,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					gl.glBindTexture(GL_TEXTURE_2D, texShadowColorDepthMap);
 				}
 
-				// Reset
 				gl.glActiveTexture(GL_TEXTURE0);
 			}
 
@@ -2136,7 +2086,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 			// Enable blending for alpha
 			gl.glEnable(GL_BLEND);
-			gl.glBlendEquation(GL_FUNC_ADD);
 			gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			// Draw buffers
