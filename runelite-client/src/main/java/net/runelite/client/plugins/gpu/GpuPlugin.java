@@ -1530,6 +1530,17 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				{
 					double latitude = 0, longitude = 0;
 
+					try
+					{
+						latitude = Double.parseDouble(config.latitude());
+						longitude = Double.parseDouble(config.longitude());
+					}
+					catch (NumberFormatException ex)
+					{
+						log.debug("Invalid value for latitude or longitude coordinate");
+						ex.printStackTrace();
+					}
+
 					long millis = System.currentTimeMillis();
 					if (config.speedUpTime())
 						millis *= 86400D / 60; // 1 day passes every minute
