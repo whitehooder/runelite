@@ -207,7 +207,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default ShadowMappingTechnique shadowMappingTechnique()
 	{
-		return ShadowMappingTechnique.VARIANCE_SHADOW_MAPS;
+		return ShadowMappingTechnique.PERCENTAGE_CLOSER_FILTERING_3X3;
 	}
 
 	@Range(
