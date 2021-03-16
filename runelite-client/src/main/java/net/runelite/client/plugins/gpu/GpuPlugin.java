@@ -98,6 +98,7 @@ import com.jogamp.opengl.GLDrawableFactory;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLFBODrawable;
 import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.math.FloatUtil;
 import com.jogamp.opengl.math.Matrix4;
 import java.awt.Canvas;
 import java.awt.Dimension;
@@ -111,6 +112,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import jogamp.nativewindow.SurfaceScaleUtils;
@@ -125,6 +127,7 @@ import net.runelite.api.GameState;
 import net.runelite.api.Model;
 import net.runelite.api.NodeCache;
 import net.runelite.api.Perspective;
+import net.runelite.api.Player;
 import net.runelite.api.Renderable;
 import net.runelite.api.Scene;
 import net.runelite.api.SceneTileModel;
@@ -132,6 +135,7 @@ import net.runelite.api.SceneTilePaint;
 import net.runelite.api.Texture;
 import net.runelite.api.TextureProvider;
 import net.runelite.api.Tile;
+import net.runelite.api.WorldType;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.hooks.DrawCallbacks;
@@ -410,6 +414,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniBlockLarge;
 	private int uniBlockMain;
 	private int uniBlockSmall;
+
+	private LocalPoint prevLoc = null;
 
 	@Override
 	protected void startUp()
@@ -1697,8 +1703,38 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					float projZoom = 1.f / shadowDistance;
 					lightSpaceProjection.scale(projZoom, projZoom, 1);
 
-					// Calculate orthographic projection matrix for shadow mapping
+//					// Calculate orthographic projection matrix for shadow mapping
 					lightSpaceProjection.makeOrtho(-dx / 2, dx / 2, -dy / 2, dy / 2, zNear * 2, zFar);
+
+//					lightSpaceProjection.multMatrix(new float[]
+//					{
+//						2.f / viewportWidth, 0, 0, -1,
+//						0, 2.f / viewportHeight, 0, -1,
+//						0, 0, -0, -50,
+//						0, 0, 0, 1
+//					});
+
+//					return new float[]
+//						{
+//							2 / w, 0, 0, 0,
+//							0, 2 / h, 0, 0,
+//							0, 0, 2 / (zNear - zFar), 0,
+//							0, 0, zNear / (zNear - zFar), 1
+//
+//							// Infinite range, but as a consequence squeezes depth information to zero
+//							// 2 / w, 0, 0, 0,
+//							// 0, 2 / h, 0, 0,
+//							// 0, 0, 0, 0,
+//							// 0, 0, 0, 1
+//						};
+
+					// Reverse Z
+//					lightSpaceProjection.multMatrix(new float[] {
+//						1, 0, 0, 0,
+//						0, 1, 0, 0,
+//						0, 0, -1, -1,
+//						0, 0, 0, 1
+//					});
 
 					lightSpaceProjection.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
 					lightSpaceProjection.rotate((float) shadowYaw, 0, 1, 0);
@@ -1885,150 +1921,324 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			gl.glUniform1i(uniColorBlindMode, config.colorBlindMode().ordinal());
 			gl.glUniform1f(uniTextureLightMode, config.brightTextures() ? 1f : 0f);
 
+			// Calculate projection matrix
 			Matrix4 projection = new Matrix4();
-			float[] projectionMatrix = null;
+			projection.scale(client.getScale(), client.getScale(), 1);
+			projection.multMatrix(makePerspectiveProjectionMatrix(viewportWidth, viewportHeight, 50));
+			projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
+			projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
+			projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+			float[] projectionMatrix = projection.getMatrix();
 
-			if (config.projectionDebugMode() == ProjectionDebugMode.DISABLED)
+			switch (config.projectionDebugMode())
 			{
-				// Calculate projection matrix
-				projection.scale(client.getScale(), client.getScale(), 1);
-				projection.multMatrix(makePerspectiveProjectionMatrix(viewportWidth, viewportHeight, 50));
-				projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-				projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-				projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
-				projectionMatrix = projection.getMatrix();
-			}
-			else
-			{
-//				int offsetX = 0, offsetY = 0, offsetZ = 0;
-//				Player player = client.getLocalPlayer();
-//				if (player != null)
-//				{
-//					LocalPoint loc = player.getLocalLocation();
+				case ORTHOGRAPHIC:
+					// Set up perspective projection matrix which
+//					projection = new Matrix4();
+//					projection.multMatrix(new float[]
+//						{
+//							// ortho
+////							2.f / viewportWidth, 0, 0, 0,
+////							0, 2.f / viewportHeight, 0, 0,
+////							0, 0, 0, 0,
+////							0, 0, 0, 1
 //
-//					offsetX = -loc.getX();
-//					offsetY = -loc.getY();
-//					offsetZ -= -player.getLogicalHeight() / 2;
+//							// perspective
+//							2.f / viewportWidth, 0, 0, 0,
+//							0, 2.f / viewportHeight, 0, 0,
+//							0, 0, -1, -1,
+//							0, 0, -2 * 50, 0
+//						});
+////					float scale = client.getScale() / (float) config.shadowResolution().getWidth();
+//					float scale = client.getScale();
+//					projection.scale(scale, scale, 1);
+//					projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
+//					projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
+//					projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+//					projectionMatrix = projection.getMatrix();
 //
-//					int[][][] tileHeights = client.getTileHeights();
-//					int plane = client.getPlane();
-//					try
-//					{
-//						offsetZ = -tileHeights[plane][loc.getSceneX()][loc.getSceneY()];
-//					}
-//					catch (Exception ex)
-//					{
-//						// Shouldn't get here
-//						log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
-//					}
-//				}
+//					log.debug(Arrays.toString(projectionMatrix));
 
-				switch (config.projectionDebugMode())
-				{
-					case ORTHOGRAPHIC:
-//						float[][] bounds = ((BoundsTrackingGpuIntBuffer) this.vertexBuffer).getBoundingBox();
+
+//					return new float[]
+//						{
+//							2 / w, 0, 0, 0,
+//							0, 2 / h, 0, 0,
+//							0, 0, -1, -1,
+//							0, 0, -2 * n, 0
+//						};
+
+//					Matrix4 ortho = new Matrix4();
+//					ortho.scale(client.getScale(), client.getScale(), 1);
+//					inverseProjection.multMatrix(makePerspectiveProjectionMatrix(viewportWidth, viewportHeight, 50));
+
+					// Simplified perspective projection
+//					ortho.multMatrix(new float[]
+//						{
+//							2.f / viewportWidth, 0, 0, 0,
+//							0, 2.f / viewportHeight, 0, 0,
+//							0, 0, 1, -1,
+//							0, 0, 1, 0
+////							0, 0, -1, -1,
+////							0, 0, -1, 0
+//						});
+
+//					float zn = Integer.MIN_VALUE, zf = -1;
+//					inverseProjection.multMatrix(new float[]
+//						{
+//							2.f / viewportWidth, 0, 0, 0,
+//							0, 2.f / viewportHeight, 0, 0,
+//							0, 0, zf / (zn - zf), (zf * zn) / (zn - zf),
+//							0, 0, -1, 0
+//						});
+
+//					ortho.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
+//					ortho.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
+//					ortho.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+
+					// Copy projection
+					Matrix4 inverseProjection = new Matrix4();
+					inverseProjection.multMatrix(projection);
+					inverseProjection.invert();
+
+					float[] clipTopLeft = new float[] {-1, 1, Float.NaN, 0}; // top right far plane
+					float[] clipTopRight = new float[] {1, 1, Float.NaN, 0}; // top left far plane
+					float[] clipBottomLeft = new float[] {-1, -1, Float.NaN, 0}; // bottom left far plane
+					float[] clipBottomRight = new float[] {1, -1, Float.NaN, 0}; // bottom right far plane
+
+					setZForZeroPlaneIntersection(projectionMatrix, clipTopLeft);
+					setZForZeroPlaneIntersection(projectionMatrix, clipTopRight);
+					setZForZeroPlaneIntersection(projectionMatrix, clipBottomLeft);
+					setZForZeroPlaneIntersection(projectionMatrix, clipBottomRight);
+
+					float[] worldTopLeft = new float[4];
+					float[] worldTopRight = new float[4];
+					float[] worldBottomLeft = new float[4];
+					float[] worldBottomRight = new float[4];
+					inverseProjection.multVec(clipTopLeft, worldTopLeft);
+					inverseProjection.multVec(clipTopRight, worldTopRight);
+					inverseProjection.multVec(clipBottomLeft, worldBottomLeft);
+					inverseProjection.multVec(clipBottomRight, worldBottomRight);
+
+					perspectiveDivide(worldTopLeft);
+					perspectiveDivide(worldTopRight);
+					perspectiveDivide(worldBottomLeft);
+					perspectiveDivide(worldBottomRight);
+
+//					log.debug(
+//						"topLeft: " + Arrays.toString(worldTopLeft) + ", " +
+//						"topRight: " + Arrays.toString(worldTopRight) + ", " +
+//						"bottomLeft: " + Arrays.toString(worldBottomLeft) + ", " +
+//						"bottomRight: " + Arrays.toString(worldBottomRight)
+//					);
+
+					// +X = East, -Y = Up, +Z = North
+					float minX = Math.min(Math.min(Math.min(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
+					float minY = Math.min(Math.min(Math.min(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
+					float minZ = Math.min(Math.min(Math.min(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
+					float maxX = Math.max(Math.max(Math.max(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
+//					float maxY = Math.max(Math.max(Math.max(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
+					float maxY = 0; // Lowest possible scene height
+					float maxZ = Math.max(Math.max(Math.max(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
+
+//					minY = -10000;
+//					maxY = 10000;
+
+					float dx = maxX - minX;
+					float dy = maxY - minY;
+					float dz = maxZ - minZ;
+
+					float midX = maxX - dx / 2;
+					float midY = maxY - dy / 2;
+					float midZ = maxZ - dz / 2;
+
+					log.debug("minY: " + minY + ", maxY: " + maxY);
+//					log.debug("dx: " + dx + ", dy: " + dy + ", dz: " + dz);
+
+					// Use Y for depth here since height varies less
+					Matrix4 ortho = new Matrix4();
+					float s = client.getScale() / 1000.f;
+//					ortho.scale(s, s, 1);
+					ortho.translate(-midX, -midZ, -midY);
+					ortho.scale(dx, dz, dy);
+					ortho.scale(viewportWidth, viewportHeight, 1);
+//					ortho.scale(1.f / viewportWidth, 1.f / viewportHeight, 1);
+					try {
+						ortho.multMatrix(new float[]
+							{
+								2 / dx, 0, 0, 0,
+								0, 2 / dz, 0, 0,
+								0, 0, -2 / dy, -1,
+								0, 0, 0, 1
+							});
+//						ortho.multMatrix(new float[]
+//							{
+//								1, 0, 0, 0,
+//								0, 1, 0, 0,
+//								0, 0, -1, 1,
+//								0, 0, 0, 1
+//							});
+//						ortho.makeOrtho(
+//							minX, maxX,
+//							minZ, maxZ,
+//							minY, maxY
+//						);
+					} catch (GLException ex) {
+						ex.printStackTrace();
+					}
+
+					ortho.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
+					ortho.rotate((float) shadowYaw, 0, 0, 1);
+//					ortho.translate(-midX, -midZ, -midY);
+
+					projectionMatrix = ortho.getMatrix();
+
+
+//					ortho.multMatrix(new float[]
+//						{
+//							2 / dx, 0, 0, -midX,
+//							0, 2 / dz, 0, -midZ,
+//							0, 0, -2 / dy, -midY,
+//							0, 0, 0, 1
+////							0, 0, -1, -1,
+////							0, 0, -1, 0
+//						});
+//					ortho.makeOrtho(
+//						worldTopLeft[0], worldTopRight[0], // left, right
+//						worldBottomLeft[1], worldTopLeft[1], // bottom, top
+//						worldTopLeft[2], worldTopRight[2] // zNear, zFar
+//					);
+
+//					ortho.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
+//					ortho.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
+
+//					ortho.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+
+
+//					log.debug(Arrays.toString(projectionMatrix));
+
+//					projection.multMatrix(inverseProjection);
+//					projectionMatrix = projection.getMatrix();
+
+//					Player player = client.getLocalPlayer();
+//					if (player != null) {
+//						LocalPoint l = player.getLocalLocation();
+//						float[] clipSpace = new float[4];
+//						projection.multVec(new float[] {l.getX(), l.getY(), 0, 1}, clipSpace);
+//						float[] worldSpace = new float[4];
+//						ortho.multVec(clipSpace, worldSpace);
+//						log.debug("l: " + l.toString() + ", clip: " + Arrays.toString(clipSpace) + ", world: " + Arrays.toString(worldSpace));
+//					}
+
+//					inverseProjection.multMatrix(makePerspectiveProjectionMatrix(2, 2, 50));
+//					inverseProjection.invert();
+//					inverseProjection.makeOrtho(-1, 1, -1, 1, -1, 1);
+
+//					projectionMatrix = inverseProjection.getMatrix();
+
+
+
+
+//					projection.multMatrix(projection);
+
+//					projectionMatrix = new float[] {
+//						2.f / viewportWidth, 0, 0, 0,
+//						0, 2.f / viewportHeight, 0, 0,
+//						0, 0, 0, 50,
+//						0, 0, -1, 0
+//					};
+
+
+
+
+
+//					projection.multMatrix(new float[] {
+//						1, 0, 0, 0,
+//						0, 1, 0, 0,
+//						0, 0, 1, 0,
+//						0, 0, 0, 1
+//					});
+//					projectionMatrix = projection.getMatrix();
+//						Tile[][][] tiles = client.getScene().getTiles();
+//						int[][][] tileHeights = client.getTileHeights();
+//						LocalPoint loc = client.getLocalPlayer().getLocalLocation();
+//						int plane = client.getPlane();
 //
-//						float left = bounds[0][0];
-//						float right = bounds[0][1];
-//						float bottom = bounds[1][0];
-//						float top = bounds[1][1];
-//						float zNear = bounds[2][0];
-//						float zFar = bounds[2][1];
+//						int offsetX = -loc.getX(), offsetY = -loc.getY(), offsetZ = 0;
 //
-//						zNear = -3000;
-//						zFar = 6000;
+//						float left = -SHADOW_WIDTH * shadowAspectRatio;
+//						float right = SHADOW_WIDTH * shadowAspectRatio;
+//						float bottom = -SHADOW_HEIGHT;
+//						float top = SHADOW_HEIGHT;
+//						float zNear = 0;
+//						float zFar = 10000;
 //
-//						zNear = Integer.MIN_VALUE;
-//						zFar = Integer.MAX_VALUE;
+//						try
+//						{
+//							int n = Constants.SCENE_SIZE - 1;
+//							LocalPoint sw = tiles[plane][0][0].getLocalLocation();
+//							LocalPoint ne = tiles[plane][n][n].getLocalLocation();
+//							int swHeight = tileHeights[plane][0][0];
+//							int neHeight = tileHeights[plane][n][n];
 //
-//						float dx = right - left;
+//							left = sw.getX() / shadowAspectRatio;
+//							right = ne.getX() / shadowAspectRatio;
+//							bottom = sw.getY();
+//							top = ne.getY();
+//
+//							// Not ideal
+//							zNear = Math.min(swHeight, neHeight);
+//							zFar = Math.min(swHeight, neHeight);
+//						}
+//						catch (Exception ex)
+//						{
+//							log.warn("Non-existent tile");
+//							ex.printStackTrace();
+//						}
+//
+//						try
+//						{
+//							offsetZ = -tileHeights[client.getPlane()][loc.getSceneX()][loc.getSceneY()];
+//						}
+//						catch (Exception ex)
+//						{
+//							// Shouldn't get here
+//							// TODO: already noticed it sometimes gets here
+//							log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
+//						}
+//
+//						zNear -= 10000 * shadowResolution;
+//						zFar += 20000 * shadowResolution;
+//
+//						float dx = (right - left) * 2;
 //						float dy = top - bottom;
 //						float dz = zFar - zNear;
 //
-////						float scale = client.getScale() / 10000.f;
-//						float scale = client.getScale() / 1024.f;
-//						projection.scale(scale, scale, scale);
-//						projection.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							zNear, zFar);
-////						projection.scale(1.f/dx, 1.f/dy, 1.f/dz);
-////						projection.makeOrtho(
-////							-dx / 2.f,
-////							dx / 2.f,
-////							-dy / 2.f,
-////							dy / 2.f,
-////							zNear, zFar);
-//						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projection.translate(
+//						float projZoom = 1.f / shadowDistance;
+//						lightSpaceProjection.scale(projZoom, projZoom, 1);
+//
+//						// Calculate orthographic projection matrix for shadow mapping
+//						lightSpaceProjection.makeOrtho(-dx / 2, dx / 2, -dy / 2, dy / 2, zNear * 2, zFar);
+//
+//						lightSpaceProjection.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
+//						lightSpaceProjection.rotate((float) shadowYaw, 0, 1, 0);
+//
+//						lightSpaceProjection.translate(
 //							offsetX,
 //							offsetZ,
 //							offsetY
 //						);
-//						projectionMatrix = projection.getMatrix();
+//
+//						lightSpaceProjectionMatrix = lightSpaceProjection.getMatrix();
 
-//						projectionMatrix = makeOrthographicProjectionMatrix(viewportWidth, viewportHeight);
-
-
-//						projection.scale(client.getScale() / 1024.f, client.getScale() / 1024.f, 1);
-//						projection.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							Integer.MIN_VALUE, Integer.MAX_VALUE);
-//						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projection.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix = projection.getMatrix();
-						break;
-					case FRUSTUM:
-						projection.scale(client.getScale(), client.getScale(), 1);
-						projection.multMatrix(makePerspectiveProjectionMatrix(viewportWidth, viewportHeight, 50));
-						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-						projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
-
-						projectionMatrix = projection.getMatrix();
-
-						Matrix4 viewFrustum = new Matrix4();
-						viewFrustum.multMatrix(projectionMatrix);
-
-
-//						projectionMatrix.scale(client.getScale() / 1024.f, client.getScale() / 1024.f, 1);
-//						projectionMatrix.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							-8000, 8000);
-//						projectionMatrix.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projectionMatrix.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projectionMatrix.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix.makeFrustum(
-//							0,
-//							1,
-//							0,
-//							1,
-//							1, 100 // zNear > 0 && zFar > zNear
-//						);
-						break;
-					case SHADOW:
-						projection = lightSpaceProjection;
-						projectionMatrix = projection.getMatrix();
-						break;
-				}
+					break;
+				case FRUSTUM:
+//					Matrix4 viewFrustum = new Matrix4();
+//					viewFrustum.multMatrix(projectionMatrix);
+					break;
+				case SHADOW:
+					projectionMatrix = lightSpaceProjection.getMatrix();
+					break;
 			}
 
 			// Bind projection matrices
@@ -2147,6 +2357,22 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		glDrawable.swapBuffers();
 
 		drawManager.processDrawComplete(this::screenshot);
+	}
+
+	private void setZForZeroPlaneIntersection(float[] projectionMatrix, float[] clipSpaceCoordinate)
+	{
+		// Assumes a 4x4 matrix and modifies clipSpaceCoordinate's Z value
+		float[] m = projectionMatrix;
+		float[] v = clipSpaceCoordinate;
+		v[2] = -(v[0] * m[8] + v[1] * m[9] + m[11]) / m[10];
+	}
+
+	private void perspectiveDivide(float[] vec4)
+	{
+		vec4[0] /= vec4[3];
+		vec4[1] /= vec4[3];
+		vec4[2] /= vec4[3];
+		vec4[3] = 1;
 	}
 
 	private float[] makePerspectiveProjectionMatrix(float w, float h, float n)

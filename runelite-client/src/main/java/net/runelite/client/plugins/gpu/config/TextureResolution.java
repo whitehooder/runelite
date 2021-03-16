@@ -37,7 +37,8 @@ public enum TextureResolution
 	RES_4096x2048("4096x2048", 4096, 2048),
 	RES_4096x4096("4096x4096", 4096, 4096),
 	RES_8192x4096("8192x4096", 8192, 4096),
-	RES_8192x8192("8192x8192", 8192, 8192);
+	RES_8192x8192("8192x8192", 8192, 8192),
+	RES_MAX("Max", Integer.MAX_VALUE, Integer.MAX_VALUE);
 
 	private final String name;
 	private final int width;
