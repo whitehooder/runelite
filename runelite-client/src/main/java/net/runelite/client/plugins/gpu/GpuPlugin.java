@@ -56,6 +56,7 @@ import static com.jogamp.opengl.GL.GL_NEAREST;
 import static com.jogamp.opengl.GL.GL_NONE;
 import static com.jogamp.opengl.GL.GL_ONE;
 import static com.jogamp.opengl.GL.GL_ONE_MINUS_SRC_ALPHA;
+import static com.jogamp.opengl.GL.GL_POINTS;
 import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_RENDERBUFFER;
 import static com.jogamp.opengl.GL.GL_RGB;
@@ -74,6 +75,7 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL.GL_TRIANGLES;
 import static com.jogamp.opengl.GL.GL_TRIANGLE_FAN;
+import static com.jogamp.opengl.GL.GL_TRUE;
 import static com.jogamp.opengl.GL.GL_UNSIGNED_BYTE;
 import static com.jogamp.opengl.GL2ES2.GL_CLAMP_TO_BORDER;
 import static com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT;
@@ -101,9 +103,11 @@ import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.math.FloatUtil;
 import com.jogamp.opengl.math.Matrix4;
 import java.awt.Canvas;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Polygon;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
@@ -165,6 +169,9 @@ import net.runelite.client.plugins.gpu.config.TintMode;
 import net.runelite.client.plugins.gpu.config.UIScalingMode;
 import net.runelite.client.plugins.gpu.template.Template;
 import net.runelite.client.ui.DrawManager;
+import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.ui.overlay.OverlayUtil;
+import net.runelite.client.ui.overlay.tooltip.Tooltip;
 import net.runelite.client.util.OSType;
 import net.runelite.client.util.SunCalc;
 import org.jocl.CL;
@@ -221,6 +228,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 	@Inject
 	private ConfigManager configManager;
+
+	@Inject
+	private OverlayManager overlayManager;
 
 	enum ComputeMode
 	{
@@ -374,6 +384,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniFogDepth;
 	private int uniLightSpaceProjectionMatrix;
 	private int uniProjectionMatrix;
+	private int uniDebugProjectionMatrix;
 	private int uniSmoothBanding;
 	private int uniTex;
 	private int uniTexSamplingMode;
@@ -387,7 +398,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniUiAlphaOverlay;
 	private int uniUiColorBlindMode;
 	private int uniUseFog;
+
+	// debug stuff
 	private int uniEnableDebug;
+	private int uniDebugSplitView;
+	private int uniViewportWidth;
+	private int uniViewportHeight;
 
 	// Shadow uniforms
 	private int uniShadowMappingTechnique;
@@ -415,11 +431,14 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniBlockMain;
 	private int uniBlockSmall;
 
-	private LocalPoint prevLoc = null;
+	@Inject
+	private DebugOverlay overlay;
 
 	@Override
 	protected void startUp()
 	{
+		overlayManager.add(overlay);
+
 		clientThread.invoke(() ->
 		{
 			try
@@ -577,6 +596,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	@Override
 	protected void shutDown()
 	{
+		overlayManager.remove(overlay);
+
 		clientThread.invoke(() ->
 		{
 			client.setGpu(false);
@@ -748,8 +769,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private void initUniforms()
 	{
 		uniEnableDebug = gl.glGetUniformLocation(glProgram, "enableDebug");
+		uniDebugSplitView = gl.glGetUniformLocation(glProgram, "debugSplitView");
+		uniViewportWidth = gl.glGetUniformLocation(glProgram, "viewportWidth");
+		uniViewportHeight = gl.glGetUniformLocation(glProgram, "viewportHeight");
 
 		uniProjectionMatrix = gl.glGetUniformLocation(glProgram, "projectionMatrix");
+		uniDebugProjectionMatrix = gl.glGetUniformLocation(glProgram, "debugProjectionMatrix");
 		uniBrightness = gl.glGetUniformLocation(glProgram, "brightness");
 		uniSmoothBanding = gl.glGetUniformLocation(glProgram, "smoothBanding");
 		uniUseFog = gl.glGetUniformLocation(glProgram, "useFog");
@@ -1525,6 +1550,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			double shadowPitch = 0;
 			TintMode activeTintMode = config.tintMode();
 
+			// TODO: only used for debugging
+			shadowYaw = Math.toRadians(config.sunAngleHorizontal());
+			shadowPitch = Math.toRadians(config.sunAngleVertical());
+
 			Matrix4 lightSpaceProjection = new Matrix4();
 			float[] lightSpaceProjectionMatrix = null;
 			if (shadowsEnabled && client.getGameState() == GameState.LOGGED_IN)
@@ -1745,12 +1774,17 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						offsetY
 					);
 
+					// TODO: remove
 					lightSpaceProjectionMatrix = lightSpaceProjection.getMatrix();
+					if (config.projectionDebugMode() == ProjectionDebugMode.ORTHOGRAPHIC)
+					{
+						lightSpaceProjectionMatrix = overlay.getOrthographicProjection(overlay.getPerspectiveProjection()).getMatrix();
+					}
 
 					gl.glUseProgram(glShadowProgram);
 
 					// Bind light space projection matrix
-					gl.glUniformMatrix4fv(uniShadowLightSpaceProjectionMatrix, 1, false, lightSpaceProjection.getMatrix(), 0);
+					gl.glUniformMatrix4fv(uniShadowLightSpaceProjectionMatrix, 1, false, lightSpaceProjectionMatrix, 0);
 
 					// Bind all uniforms required to determine exact colors of all objects
 					gl.glUniform1f(uniShadowBrightness, (float) textureProvider.getBrightness());
@@ -1930,35 +1964,70 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
 			float[] projectionMatrix = projection.getMatrix();
 
+			overlay.shadowPitch = shadowPitch;
+			overlay.shadowYaw = shadowYaw;
+			overlay.perspective = projection;
+
+			float[] debugProjectionMatrix = projectionMatrix;
+
 			switch (config.projectionDebugMode())
 			{
 				case ORTHOGRAPHIC:
+					Matrix4 ortho = overlay.getOrthographicProjection(projection);
+//					Matrix4 ortho = overlay.getFittedOrthographicProjection(projection, false);
+					debugProjectionMatrix = ortho.getMatrix();
+
+//					float[][] bounds = getViewportBoundsWorldSpace(inverseProjection);
+
+//					log.debug(
+//						"topLeft: " + Arrays.toString(bounds[0]) + ", " +
+//						"topRight: " + Arrays.toString(bounds[1]) + ", " +
+//						"bottomLeft: " + Arrays.toString(bounds[2]) + ", " +
+//						"bottomRight: " + Arrays.toString(bounds[3])
+//					);
+
+//					log.debug(String.format("x: %.2f, y: %.2f, z: %.2f, t: %.3f", x, y, z, t));
+
 					// Set up perspective projection matrix which
 //					projection = new Matrix4();
+//
+//					float l = bounds[0][0];
+//					float r = bounds[1][0];
+//					float t = bounds[0][1];
+//					float b = bounds[2][1];
+////					float zNear = worldTopLeft[1], zFar = worldBottomLeft[1];
+//					float zNear = -10000, zFar = -10000;
+//					float w = r - l;
+//					float h = t - b;
 //					projection.multMatrix(new float[]
 //						{
 //							// ortho
-////							2.f / viewportWidth, 0, 0, 0,
-////							0, 2.f / viewportHeight, 0, 0,
+//							2.f / w, 0, 0, -(r + l) / (r - l),
+//							0, 2.f / h, 0, -(t + b) / (t - b),
 ////							0, 0, 0, 0,
-////							0, 0, 0, 1
+//							0, 0, -2.f / (zFar - zNear), -(zFar + zNear) / (zFar - zNear),
+//							0, 0, 0, 1
 //
 //							// perspective
-//							2.f / viewportWidth, 0, 0, 0,
-//							0, 2.f / viewportHeight, 0, 0,
-//							0, 0, -1, -1,
-//							0, 0, -2 * 50, 0
+////							2.f / viewportWidth, 0, 0, 0,
+////							0, 2.f / viewportHeight, 0, 0,
+////							0, 0, -1, -1,
+////							0, 0, -2 * 50, 0
 //						});
-////					float scale = client.getScale() / (float) config.shadowResolution().getWidth();
-//					float scale = client.getScale();
-//					projection.scale(scale, scale, 1);
-//					projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//					projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//					projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+//////					float scale = client.getScale() / (float) config.shadowResolution().getWidth();
+////					float scale = client.getScale() / 1000.f;
+////					float scale = client.getScale();
+////					projection.scale(scale, scale, 1);
+//					projection.rotate((float) (Math.PI - shadowPitch * Perspective.UNIT), -1, 0, 0);
+//					projection.rotate((float) (shadowYaw * Perspective.UNIT), 0, 1, 0);
+////					projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
 //					projectionMatrix = projection.getMatrix();
 //
 //					log.debug(Arrays.toString(projectionMatrix));
 
+//					double fov = 2 * Math.atan(1 / projectionMatrix[5]);
+//					double aspectRatio = projectionMatrix[5] / projectionMatrix[0];
+//					log.debug("fov: " + Math.toDegrees(fov) + ", aspectRatio: " + aspectRatio);
 
 //					return new float[]
 //						{
@@ -1997,101 +2066,103 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //					ortho.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
 
 					// Copy projection
-					Matrix4 inverseProjection = new Matrix4();
-					inverseProjection.multMatrix(projection);
-					inverseProjection.invert();
-
-					float[] clipTopLeft = new float[] {-1, 1, Float.NaN, 0}; // top right far plane
-					float[] clipTopRight = new float[] {1, 1, Float.NaN, 0}; // top left far plane
-					float[] clipBottomLeft = new float[] {-1, -1, Float.NaN, 0}; // bottom left far plane
-					float[] clipBottomRight = new float[] {1, -1, Float.NaN, 0}; // bottom right far plane
-
-					setZForZeroPlaneIntersection(projectionMatrix, clipTopLeft);
-					setZForZeroPlaneIntersection(projectionMatrix, clipTopRight);
-					setZForZeroPlaneIntersection(projectionMatrix, clipBottomLeft);
-					setZForZeroPlaneIntersection(projectionMatrix, clipBottomRight);
-
-					float[] worldTopLeft = new float[4];
-					float[] worldTopRight = new float[4];
-					float[] worldBottomLeft = new float[4];
-					float[] worldBottomRight = new float[4];
-					inverseProjection.multVec(clipTopLeft, worldTopLeft);
-					inverseProjection.multVec(clipTopRight, worldTopRight);
-					inverseProjection.multVec(clipBottomLeft, worldBottomLeft);
-					inverseProjection.multVec(clipBottomRight, worldBottomRight);
-
-					perspectiveDivide(worldTopLeft);
-					perspectiveDivide(worldTopRight);
-					perspectiveDivide(worldBottomLeft);
-					perspectiveDivide(worldBottomRight);
-
-//					log.debug(
-//						"topLeft: " + Arrays.toString(worldTopLeft) + ", " +
-//						"topRight: " + Arrays.toString(worldTopRight) + ", " +
-//						"bottomLeft: " + Arrays.toString(worldBottomLeft) + ", " +
-//						"bottomRight: " + Arrays.toString(worldBottomRight)
-//					);
-
-					// +X = East, -Y = Up, +Z = North
-					float minX = Math.min(Math.min(Math.min(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
-					float minY = Math.min(Math.min(Math.min(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
-					float minZ = Math.min(Math.min(Math.min(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
-					float maxX = Math.max(Math.max(Math.max(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
-//					float maxY = Math.max(Math.max(Math.max(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
-					float maxY = 0; // Lowest possible scene height
-					float maxZ = Math.max(Math.max(Math.max(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
-
-//					minY = -10000;
-//					maxY = 10000;
-
-					float dx = maxX - minX;
-					float dy = maxY - minY;
-					float dz = maxZ - minZ;
-
-					float midX = maxX - dx / 2;
-					float midY = maxY - dy / 2;
-					float midZ = maxZ - dz / 2;
-
-					log.debug("minY: " + minY + ", maxY: " + maxY);
-//					log.debug("dx: " + dx + ", dy: " + dy + ", dz: " + dz);
-
-					// Use Y for depth here since height varies less
-					Matrix4 ortho = new Matrix4();
-					float s = client.getScale() / 1000.f;
-//					ortho.scale(s, s, 1);
-					ortho.translate(-midX, -midZ, -midY);
-					ortho.scale(dx, dz, dy);
-					ortho.scale(viewportWidth, viewportHeight, 1);
-//					ortho.scale(1.f / viewportWidth, 1.f / viewportHeight, 1);
-					try {
-						ortho.multMatrix(new float[]
-							{
-								2 / dx, 0, 0, 0,
-								0, 2 / dz, 0, 0,
-								0, 0, -2 / dy, -1,
-								0, 0, 0, 1
-							});
+//					Matrix4 inverseProjection = new Matrix4();
+//
+//					inverseProjection.multMatrix(projection);
+//					inverseProjection.invert();
+//					float[] inverse = inverseProjection.getMatrix();
+//
+//					float[] clipTopLeft = new float[] {-1, 1, Float.NaN, -1}; // top right far plane
+//					float[] clipTopRight = new float[] {1, 1, Float.NaN, -1}; // top left far plane
+//					float[] clipBottomLeft = new float[] {-1, -1, Float.NaN, -1}; // bottom left far plane
+//					float[] clipBottomRight = new float[] {1, -1, Float.NaN, -1}; // bottom right far plane
+//
+//					setZForZeroPlaneIntersection(inverse, clipTopLeft);
+//					setZForZeroPlaneIntersection(inverse, clipTopRight);
+//					setZForZeroPlaneIntersection(inverse, clipBottomLeft);
+//					setZForZeroPlaneIntersection(inverse, clipBottomRight);
+//
+//					float[] worldTopLeft = new float[4];
+//					float[] worldTopRight = new float[4];
+//					float[] worldBottomLeft = new float[4];
+//					float[] worldBottomRight = new float[4];
+//					inverseProjection.multVec(clipTopLeft, worldTopLeft);
+//					inverseProjection.multVec(clipTopRight, worldTopRight);
+//					inverseProjection.multVec(clipBottomLeft, worldBottomLeft);
+//					inverseProjection.multVec(clipBottomRight, worldBottomRight);
+//
+//					perspectiveDivide(worldTopLeft);
+//					perspectiveDivide(worldTopRight);
+//					perspectiveDivide(worldBottomLeft);
+//					perspectiveDivide(worldBottomRight);
+//
+////					log.debug(
+////						"topLeft: " + Arrays.toString(worldTopLeft) + ", " +
+////						"topRight: " + Arrays.toString(worldTopRight) + ", " +
+////						"bottomLeft: " + Arrays.toString(worldBottomLeft) + ", " +
+////						"bottomRight: " + Arrays.toString(worldBottomRight)
+////					);
+//
+//					// +X = East, -Y = Up, +Z = North
+//					float minX = Math.min(Math.min(Math.min(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
+//					float minY = Math.min(Math.min(Math.min(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
+//					float minZ = Math.min(Math.min(Math.min(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
+//					float maxX = Math.max(Math.max(Math.max(worldTopLeft[0], worldTopRight[0]), worldBottomLeft[0]), worldBottomRight[0]);
+////					float maxY = Math.max(Math.max(Math.max(worldTopLeft[1], worldTopRight[1]), worldBottomLeft[1]), worldBottomRight[1]);
+//					float maxY = 0; // Lowest possible scene height
+//					float maxZ = Math.max(Math.max(Math.max(worldTopLeft[2], worldTopRight[2]), worldBottomLeft[2]), worldBottomRight[2]);
+//
+////					minY = -10000;
+////					maxY = 10000;
+//
+//					float dx = maxX - minX;
+//					float dy = maxY - minY;
+//					float dz = maxZ - minZ;
+//
+//					float midX = maxX - dx / 2;
+//					float midY = maxY - dy / 2;
+//					float midZ = maxZ - dz / 2;
+//
+//					log.debug("minY: " + minY + ", maxY: " + maxY);
+////					log.debug("dx: " + dx + ", dy: " + dy + ", dz: " + dz);
+//
+//					// Use Y for depth here since height varies less
+//					Matrix4 ortho = new Matrix4();
+//					float s = client.getScale() / 1000.f;
+////					ortho.scale(s, s, 1);
+//					ortho.translate(-midX, -midZ, -midY);
+//					ortho.scale(dx, dz, dy);
+//					ortho.scale(viewportWidth, viewportHeight, 1);
+////					ortho.scale(1.f / viewportWidth, 1.f / viewportHeight, 1);
+//					try {
 //						ortho.multMatrix(new float[]
 //							{
-//								1, 0, 0, 0,
-//								0, 1, 0, 0,
-//								0, 0, -1, 1,
+//								2 / dx, 0, 0, 0,
+//								0, 2 / dz, 0, 0,
+//								0, 0, -2 / dy, -1,
 //								0, 0, 0, 1
 //							});
-//						ortho.makeOrtho(
-//							minX, maxX,
-//							minZ, maxZ,
-//							minY, maxY
-//						);
-					} catch (GLException ex) {
-						ex.printStackTrace();
-					}
-
-					ortho.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
-					ortho.rotate((float) shadowYaw, 0, 0, 1);
-//					ortho.translate(-midX, -midZ, -midY);
-
-					projectionMatrix = ortho.getMatrix();
+////						ortho.multMatrix(new float[]
+////							{
+////								1, 0, 0, 0,
+////								0, 1, 0, 0,
+////								0, 0, -1, 1,
+////								0, 0, 0, 1
+////							});
+////						ortho.makeOrtho(
+////							minX, maxX,
+////							minZ, maxZ,
+////							minY, maxY
+////						);
+//					} catch (GLException ex) {
+//						ex.printStackTrace();
+//					}
+//
+//					ortho.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
+//					ortho.rotate((float) shadowYaw, 0, 0, 1);
+////					ortho.translate(-midX, -midZ, -midY);
+//
+//					projectionMatrix = ortho.getMatrix();
 
 
 //					ortho.multMatrix(new float[]
@@ -2237,7 +2308,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //					viewFrustum.multMatrix(projectionMatrix);
 					break;
 				case SHADOW:
-					projectionMatrix = lightSpaceProjection.getMatrix();
+					debugProjectionMatrix = lightSpaceProjection.getMatrix();
 					break;
 			}
 
@@ -2246,6 +2317,8 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				gl.glUniformMatrix4fv(uniProjectionMatrix, 1, false, projectionMatrix, 0);
 			if (lightSpaceProjectionMatrix != null)
 				gl.glUniformMatrix4fv(uniLightSpaceProjectionMatrix, 1, false, lightSpaceProjectionMatrix, 0);
+			if (debugProjectionMatrix != null)
+				gl.glUniformMatrix4fv(uniDebugProjectionMatrix, 1, false, debugProjectionMatrix, 0);
 
 			for (int id = 0; id < textures.length; ++id)
 			{
@@ -2262,12 +2335,17 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			}
 
 			// Bind uniforms
-			gl.glUniform1i(uniEnableDebug, config.enableDebugMode() ? 1 : 0);
 			gl.glUniformBlockBinding(glProgram, uniBlockMain, 0);
 			gl.glUniform1i(uniTextures, 1); // texture sampler array is bound to texture1
 			gl.glUniform2fv(uniTextureOffsets, 128, textureOffsets, 0);
 			gl.glUniform1i(uniTintMode, activeTintMode.getId());
 			gl.glUniform1i(uniDistanceFadeMode, config.distanceFadeMode().getId());
+
+			// debug stuff
+			gl.glUniform1i(uniEnableDebug, config.enableDebugMode() ? 1 : 0);
+			gl.glUniform1i(uniViewportWidth, viewportWidth);
+			gl.glUniform1i(uniViewportHeight, viewportHeight);
+			gl.glUniform1f(uniDebugSplitView, config.debugSplitView() / 100.f);
 
 			// Bind shadow-related uniforms
 			gl.glUniform1i(uniEnableShadows, shadowsEnabled ? 1 : 0);
@@ -2359,12 +2437,41 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		drawManager.processDrawComplete(this::screenshot);
 	}
 
+//	private float[] calculateZeroPlaneIntersectionTopRight(float[] projectionMatrix)
+//	{
+////		x = (
+////			-(
+////				(
+////					(1 - h) / e - (1 + d) / a
+////				) / (
+////					-b/e + f/e
+////				)
+////			) * j
+////				-l
+////		) / i
+////
+////		y = (1 - xa - d) / b
+//	}
+
 	private void setZForZeroPlaneIntersection(float[] projectionMatrix, float[] clipSpaceCoordinate)
 	{
 		// Assumes a 4x4 matrix and modifies clipSpaceCoordinate's Z value
 		float[] m = projectionMatrix;
 		float[] v = clipSpaceCoordinate;
-		v[2] = -(v[0] * m[8] + v[1] * m[9] + m[11]) / m[10];
+
+//		x = (
+//			-(
+//				(
+//					(1 - h) / e - (1 + d) / a
+//				) / (
+//					-b/e + f/e
+//				)
+//			) * j
+//				-l
+//		) / i
+//
+//
+//		y = (1 - xa - d) / b
 	}
 
 	private void perspectiveDivide(float[] vec4)
@@ -2373,6 +2480,40 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		vec4[1] /= vec4[3];
 		vec4[2] /= vec4[3];
 		vec4[3] = 1;
+	}
+
+	private float[][] getViewportBoundsWorldSpace(Matrix4 projection)
+	{
+		Matrix4 inverseProjection = new Matrix4();
+		inverseProjection.multMatrix(projection);
+		inverseProjection.invert();
+
+		float[] topLeft = worldIntersectionFromClipSpace(inverseProjection, -1, 1);
+		float[] topRight = worldIntersectionFromClipSpace(inverseProjection, 1, 1);
+		float[] bottomLeft = worldIntersectionFromClipSpace(inverseProjection, -1, -1);
+		float[] bottomRight = worldIntersectionFromClipSpace(inverseProjection, 1, -1);
+
+		return new float[][] {topLeft, topRight, bottomLeft, bottomRight};
+	}
+
+	private float[] worldIntersectionFromClipSpace(Matrix4 inverseProjection, float clipX, float clipY)
+	{
+		float groundZ = 0;
+
+		float[] clip = new float[] {clipX, clipY, groundZ, 1};
+
+		float[] dir = new float[4];
+		inverseProjection.multVec(clip, dir);
+
+		perspectiveDivide(dir);
+
+		// Intersection with Z = 0 from camera along dir
+		float t = -client.getCameraY2() / dir[1];
+		float x = client.getCameraX2() + dir[0] * t;
+		float y = 0;
+		float z = client.getCameraZ2() + dir[2] * t;
+
+		return new float[] {x, y, z};
 	}
 
 	private float[] makePerspectiveProjectionMatrix(float w, float h, float n)

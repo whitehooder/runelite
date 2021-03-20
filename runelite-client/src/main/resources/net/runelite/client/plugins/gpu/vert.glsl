@@ -52,7 +52,12 @@ uniform int useFog;
 uniform int fogDepth;
 uniform int drawDistance;
 uniform mat4 projectionMatrix;
+uniform mat4 debugProjectionMatrix;
 uniform mat4 lightSpaceProjectionMatrix;
+
+uniform float debugSplitView;
+uniform int viewportWidth;
+uniform int viewportHeight;
 
 out vec4 Color;
 noperspective centroid out float fHsl;
@@ -61,6 +66,7 @@ out vec2 fUv;
 out float fogAmount;
 
 out vec4 fragPosLightSpace;
+out vec4 debugPos;
 
 #include hsl_to_rgb.glsl
 
@@ -82,6 +88,11 @@ void main()
   fHsl = float(hsl);
   textureId = int(uv.x);
   fUv = uv.yz;
+
+  float screenX = (gl_Position.x / gl_Position.w + 1) / 2.f;
+  if (debugSplitView > 0 && (debugSplitView > 1 || screenX > 1 - debugSplitView)) {
+    gl_Position = debugProjectionMatrix * vec4(vertex, 1.f);
+  }
 
   int fogWest = max(FOG_SCENE_EDGE_MIN, cameraX - drawDistance);
   int fogEast = min(FOG_SCENE_EDGE_MAX, cameraX + drawDistance - TILE_SIZE);

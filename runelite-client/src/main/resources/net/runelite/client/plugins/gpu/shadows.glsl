@@ -115,7 +115,7 @@ vec4 applyShadows(vec4 c) {
             c.rgb *= 1 - shadow * shadowOpacity * distanceFadeOpacity;
         }
 
-        if (enableShadowTranslucency && shadow < .1) {
+        if (enableShadowTranslucency && shadow < 1) {
             if (c.a != 1) {
                 // The Z value is only used by sampleDepthMap
                 coords.z += translucencyOffset;
@@ -138,16 +138,18 @@ vec4 applyShadows(vec4 c) {
             } else {
                 vec3 hsv = rgbToHsv(shadowColor);
                 hsv.x = mod(hsv.x + .5, 1);
+                hsv.y = min(1, hsv.y * shadowColorIntensity);
                 hsv.z *= shadowColorIntensity;
                 shadowColor = hsvToRgb(hsv);
             }
 
+//            c.rgb = mix(c.rgb, shadowColor, opacity * shadowOpacity);
             c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity);
         }
     }
 
     if (enableDebug) {
-        float tileSize = 300;
+        float tileSize = 600;
         float offsetLeft = 0;
         float offsetBottom = 0;
 

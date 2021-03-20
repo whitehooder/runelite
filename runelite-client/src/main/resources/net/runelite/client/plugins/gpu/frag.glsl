@@ -58,6 +58,7 @@ flat in int textureId;
 in vec2 fUv;
 in float fogAmount;
 in vec4 fragPosLightSpace;
+in vec4 debugPos;
 
 out vec4 FragColor;
 
@@ -80,11 +81,42 @@ void main() {
         float light = fHsl / 127.f;
         vec3 mul = (1.f - textureLightMode) * vec3(light) + textureLightMode * Color.rgb;
         c = textureColorBrightness * vec4(mul, 1.f);
+
+        if (textureId > 0) {
+            if (textureId == 60) {
+                vec3 hsv = rgbToHsv(c.rgb);
+                hsv.x += animatedUv.x + animatedUv.y;
+                //            hsv.y *= 3;
+                //            hsv.z *= 3;
+                hsv.y = 1;
+                hsv.z = pow(hsv.z + .75f, 10);
+                c.rgb = hsvToRgb(hsv);
+
+//                c.rgb = pow(c.rgb + .65f, vec3(5));
+
+                //                c.rgb = c.bgr;
+                //                c.g *= 1000;
+            } else if (textureId < 45 && textureId > 20) {
+                //            vec3 hsv = rgbToHsv(c.rgb);
+                //            hsv.b *= 4;
+                //            c.rgb = hsvToRgb(hsv);
+                //            c.rgb = pow(c.rgb + .f, vec3(7));
+            }
+        }
     } else {
         // pick interpolated hsl or rgb depending on smooth banding setting
         vec3 rgb = hslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
         c = vec4(rgb, Color.a);
     }
+
+//    vec3 magma = vec3(.655, .246, 0);
+//    vec3 d = abs(c.rgb - magma);
+//    if (d.r < .3 && d.g < .4 && d.b < .1) {
+//        vec3 hsl = rgbToHsl(c.rgb);
+//        hsl *= pow(vec3(1, 1.5, 1.5), vec3(1.5));
+//        c.rgb = hslToRgb(hsl);
+//        c.rgb = c.bgr;
+//    }
 
     c = applyShadows(c);
 

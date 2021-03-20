@@ -248,7 +248,19 @@ class DevToolsOverlay extends Overlay
 		Polygon poly = Perspective.getCanvasTilePoly(client, tile.getLocalLocation());
 		if (poly != null && poly.contains(client.getMouseCanvasPosition().getX(), client.getMouseCanvasPosition().getY()))
 		{
+			int[][][] tileHeights = client.getTileHeights();
+			int h = 0;
+			if (tileHeights != null)
+			{
+				try {
+					h = tileHeights[client.getPlane()][tile.getSceneLocation().getX()][tile.getSceneLocation().getY()];
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
 			toolTipManager.add(new Tooltip("World Location: " + tile.getWorldLocation().getX() + ", " + tile.getWorldLocation().getY() + ", " + client.getPlane()));
+			toolTipManager.add(new Tooltip("Scene Location: " + tile.getSceneLocation().getX() + ", " + tile.getSceneLocation().getY() + ", " + client.getPlane()));
+			toolTipManager.add(new Tooltip("Local Location: " + tile.getLocalLocation().getX() + ", " + tile.getLocalLocation().getY() + ", " + h));
 			OverlayUtil.renderPolygon(graphics, poly, GREEN);
 		}
 	}

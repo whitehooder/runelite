@@ -384,17 +384,34 @@ public interface GpuPluginConfig extends Config
 		keyName = "enableDebugMode",
 		name = "Enable debug overlay",
 		description = "Displays the different textures used for shadow mapping.",
-		position = 29
+		position = 28
 	)
 	default boolean enableDebugMode()
 	{
 		return false;
 	}
 
+	@Units(Units.PERCENT)
+	@Range(
+		max = 200,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "debugSplitView",
+		name = "Debug split view",
+		description = "Displays different projections in split view.",
+		position = 29,
+		section = shadowSection
+	)
+	default int debugSplitView()
+	{
+		return 0;
+	}
+
 	@ConfigItem(
 		keyName = "projectionDebugMode",
-		name = "Projection debug mode",
-		description = "Select debug projection to use for the viewport.",
+		name = "Debug projection",
+		description = "Select which projection to debug in split view.",
 		position = 30
 	)
 	default ProjectionDebugMode projectionDebugMode()
