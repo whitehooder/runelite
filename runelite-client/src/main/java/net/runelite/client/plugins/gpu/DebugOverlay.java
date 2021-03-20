@@ -4,6 +4,12 @@ import com.google.inject.Inject;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.math.VectorUtil;
 import com.jogamp.opengl.math.geom.Frustum;
+import static com.jogamp.opengl.math.geom.Frustum.BOTTOM;
+import static com.jogamp.opengl.math.geom.Frustum.FAR;
+import static com.jogamp.opengl.math.geom.Frustum.LEFT;
+import static com.jogamp.opengl.math.geom.Frustum.NEAR;
+import static com.jogamp.opengl.math.geom.Frustum.RIGHT;
+import static com.jogamp.opengl.math.geom.Frustum.TOP;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -65,7 +71,7 @@ public class DebugOverlay extends Overlay
 			{
 				{ 128,  13056 },
 				{ 128,  13056 },
-				{   0, -10000 }
+				{   0, Integer.MIN_VALUE }
 			};
 	}
 
@@ -208,8 +214,6 @@ public class DebugOverlay extends Overlay
 
 		// TODO: the now static scene bounds could be used to control shadow distance
 
-
-
 //		Matrix4 ortho = getFittedOrthographicProjection(perspective, false);
 //
 //		float[][] bounds = getFrustumBounds(perspective);
@@ -267,26 +271,28 @@ public class DebugOverlay extends Overlay
 		float dx = plane.calculateWidth();
 		float dy = plane.calculateHeight();
 
+//		print("dx dy: ", new float[] {dx, dy});
+
 		// Infinite range, but as a consequence squeezes depth information to zero. Useful while debugging
-		ortho.multMatrix(new float[]
-			{
-				2.f / dx, 0, 0, 0,
-				0, 2.f / dy, 0, 0,
-				0, 0, 0, 0,
-				0, 0, 0, 1
-			});
+//		ortho.multMatrix(new float[]
+//			{
+//				2.f / dx, 0, 0, 0,
+//				0, 2.f / dy, 0, 0,
+//				0, 0, 0, 0,
+//				0, 0, 0, 1
+//			});
 
 		// TODO: far and near clipping planes could be improved
 		float near = 3000;
 		float far = -2000;
 		// Infinite range with depth axis flipped so depth information is retained
-//		ortho.multMatrix(new float[]
-//			{
-//				2.f / dx, 0, 0, 0,
-//				0, -2.f / dy, 0, 0,
-//				0, 0, .0001f, 0,
-//				0, 0, 0, 1
-//			});
+		ortho.multMatrix(new float[]
+			{
+				2.f / dx, 0, 0, 0,
+				0, 2.f / dy, 0, 0,
+				0, 0, -.0001f, 0,
+				0, 0, 0, 1
+			});
 //		ortho.multMatrix(new float[]
 //			{
 //				2.f / dx, 0, 0, 0,
@@ -303,14 +309,9 @@ public class DebugOverlay extends Overlay
 		// We want to end up with Y as up and Z as depth in screen space
 		// (actually we want the direction the plane's normal is pointing to be depth)
 
-//		System.out.println(Arrays.deepToString(plane.corners));
-
-		// Rotate around X axis
-		ortho.rotate(VectorUtil.angleVec3(plane.normal, new float[] {0, 0, 1}), -1, 0, 0);
-
 		// Apply shadow rotations after aligning with plane normal
 		// (yaw, then pitch, everything's in reverse order)
-		ortho.rotate((float) (Math.PI / 2.f - shadowPitch), -1, 0, 0);
+		ortho.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
 		ortho.rotate((float) shadowYaw, 0, 1, 0);
 
 		// Align viewport with plane normal
@@ -497,6 +498,16 @@ public class DebugOverlay extends Overlay
 			client.getCameraZ()
 		};
 
+		// Project from screen to world space
+		float[] worldCenter = new float[4];
+		inverseProjection.multVec(new float[] {0, 0, 0, 1}, worldCenter);
+		perspectiveDivide(worldCenter);
+		swapYZ(worldCenter);
+
+		int[][] localBounds = getLocalBounds();
+		float[] groundPlaneOrigin = worldCenter;
+		float[] groundPlaneNormal = {0, 0, 1};
+
 		for (int i = 0; i < corners.length; i++)
 		{
 			float[] screenPoint = {
@@ -514,48 +525,56 @@ public class DebugOverlay extends Overlay
 			// Normalization isn't strictly necessary, but without we might skip certain intersections
 			VectorUtil.normalizeVec3(worldDirection);
 
-			float[][][] intersections = getBoundsIntersections(camPos, worldDirection);
-
-			float[] closest = getClosestIntersection(intersections);
-			if (closest != null)
+			float[] intersection = intersectPlane(camPos, worldDirection, groundPlaneOrigin, groundPlaneNormal);
+//			print("dir - intersection: " + Arrays.toString(worldDirection), intersection);
+			if (intersection == null)
 			{
-				closest[3] = 1; // Set W to 1 as normal, since we don't want to do the
-				// calculation with W set to the intersection's distance multiplier
-				swapYZ(closest); // Swap back to RS coordinates where -Z is up
-
-				// Unless all intersections are lowered to the ground plane, intersections
-				// too far up in the air can cause cutoffs, so set Y to 0
-				closest[1] = 0;
-
-				corners[i] = closest;
-//				print("intersection corner: " + i + " - ", closest);
+//				print("no intersection for: ", worldDirection);
+				intersection = new float[4];
+				intersection[0] = worldDirection[0] < 0 ? localBounds[0][0] : localBounds[0][1];
+				intersection[1] = worldDirection[1] < 0 ? localBounds[1][0] : localBounds[1][1];
+//				intersection[2] = groundPlaneOrigin[2];
 			}
 			else
 			{
-				corners[i] = new float[] {0, 0, 0, 1};
-				System.out.println("no intersection for corner " + Arrays.toString(corners[i]));
+				constrainPointToBounds(intersection, localBounds);
 			}
+
+			intersection[3] = 1; // Set W to 1 as normal, since we don't want to do the
+			// calculation with W set to the intersection's distance multiplier
+			swapYZ(intersection); // Swap back to RS coordinates where -Z is up
+
+			corners[i] = intersection;
 		}
 
-		float[] normal = new float[4];
-		float[] vecRight = calculateVector(corners[0], corners[3]);; // top left -> bottom left
-		float[] vecUp = calculateVector(corners[0], corners[1]);; // top left -> top right
+//		print("corners: ", corners);
 
-		// Calculate normal pointing away from camera
-		VectorUtil.crossVec3(normal, vecUp, vecRight);
-		VectorUtil.normalizeVec3(normal);
+//		System.out.println(Arrays.deepToString(corners));
+
+		float[] normal = {0, 0, -1, 0};
+//		float[] vecRight = calculateVector(corners[0], corners[3]);; // top left -> bottom left
+//		float[] vecUp = calculateVector(corners[0], corners[1]);; // top left -> top right
 
 		float[] origin = new float[4];
+		// Imprecise way when corners aren't playing nice
 		VectorUtil.addVec3(origin, origin, corners[0]);
 		origin[3] = 1;
+//		if (centerOrigin)
+//		{
+//			// Halve vectors
+//			VectorUtil.scaleVec3(vecRight, vecRight, .5f);
+//			VectorUtil.scaleVec3(vecUp, vecUp, .5f);
+//			// Reposition plane origin to the center of the plane
+//			VectorUtil.addVec3(origin, origin, vecRight);
+//			VectorUtil.addVec3(origin, origin, vecUp);
+//		}
+
 		if (centerOrigin)
 		{
-			// Halve vectors
-			VectorUtil.scaleVec3(vecRight, vecRight, .5f);
-			VectorUtil.scaleVec3(vecUp, vecUp, .5f);
-			// Reposition plane origin to the center of the plane
-			VectorUtil.addVec3(origin, origin, vecRight);
-			VectorUtil.addVec3(origin, origin, vecUp);
+			VectorUtil.addVec3(origin, origin, corners[1]);
+			VectorUtil.addVec3(origin, origin, corners[2]);
+			VectorUtil.addVec3(origin, origin, corners[3]);
+			VectorUtil.scaleVec3(origin, origin, .25f);
 		}
 
 		return new FrustumPlane(origin, normal, corners);
@@ -744,7 +763,7 @@ public class DebugOverlay extends Overlay
 		FrustumPlane plane = getFrustumPlane(perspective, true);
 
 		float[][] bounds = plane.corners;
-		System.out.println(Arrays.deepToString(bounds));
+//		System.out.println(Arrays.deepToString(bounds));
 		for (int i = 0; i < bounds.length; i++)
 		{
 			float[] result = new float[4];
@@ -977,7 +996,7 @@ public class DebugOverlay extends Overlay
 	{
 		float[][][] intersections = new float[3][2][];
 
-		int[][] bounds = getLocalBounds();
+		int[][] bounds = getLocalBounds(); // TODO: needs Z bounds added back in
 		for (int axis = 0; axis < bounds.length; axis++)
 		{
 			float[] normal = new float[3];
@@ -1095,6 +1114,7 @@ public class DebugOverlay extends Overlay
 //			}
 //		}
 
+//		System.out.println(Arrays.toString(screenPoint) + ": " + Arrays.deepToString(intersections));
 		float[] closest = getClosestIntersection(intersections);
 		if (closest != null)
 		{
@@ -1184,9 +1204,44 @@ public class DebugOverlay extends Overlay
 //		drawPoint(g, result);
 //	}
 
+	private String prevPrint = "";
+	private String prevPrintMultidim = "";
+
 	private void print(float[] vec)
 	{
 		print("", vec);
+	}
+
+	private void print(float[][] multidim)
+	{
+		print("", multidim);
+	}
+
+	private void print(String prefix, float[][] multidim)
+	{
+		String s = prefix;
+		for (float[] vec : multidim)
+		{
+			if (vec == null)
+			{
+				s += "null";
+				continue;
+			}
+			for (int i = 0; i < vec.length; i++)
+			{
+				if (i > 0)
+				{
+					s += ", ";
+				}
+				s += StringUtils.leftPad(String.format("%.10f", vec[i]), 10);
+			}
+			s += "      ";
+		}
+		if (!prevPrintMultidim.equals(s))
+		{
+			System.out.println(s);
+			prevPrintMultidim = s;
+		}
 	}
 
 	private void print(String prefix, float[] vec)
@@ -1205,7 +1260,11 @@ public class DebugOverlay extends Overlay
 			}
 			s += StringUtils.leftPad(String.format("%.10f", vec[i]), 10);
 		}
-		System.out.println(s);
+		if (!prevPrint.equals(s))
+		{
+			System.out.println(s);
+			prevPrint = s;
+		}
 	}
 
 	private float[] worldIntersectionFromClipSpace(Matrix4 inverseProjection, float clipX, float clipY)
@@ -1325,5 +1384,22 @@ public class DebugOverlay extends Overlay
 	private void centerMatrix(Matrix4 matrix, float[] origin)
 	{
 		matrix.translate(-origin[0], -origin[1], -origin[2]);
+	}
+
+	private void constrainPointToBounds(float[] point, int[][] bounds)
+	{
+		for (int axis = 0; axis < 2; axis++)
+		{
+			if (point[axis] < bounds[axis][0])
+			{
+				System.out.println("bounding " + point[axis] + " to " + bounds[axis][0]);
+				point[axis] = bounds[axis][0];
+			}
+			else if (point[axis] > bounds[axis][1])
+			{
+				System.out.println("bounding " + point[axis] + " to " + bounds[axis][1]);
+				point[axis] = bounds[axis][1];
+			}
+		}
 	}
 }
