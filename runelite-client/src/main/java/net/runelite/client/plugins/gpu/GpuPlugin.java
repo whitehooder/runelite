@@ -1616,7 +1616,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						}
 					}
 
-					int[][] bounds = getLocalBounds();
+					int[][] bounds = getSceneBounds();
 
 					float left = bounds[0][0];
 					float right = bounds[0][1];
@@ -2460,66 +2460,11 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		int drawDistance = getShadowDistance();
 		int x = l.getSceneX();
 		int y = l.getSceneY();
-		int minX = x - Math.min(drawDistance, x - 1);
-		int minY = y - Math.min(drawDistance, y - 1);
-		int maxX = x + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - x);
-		int maxY = y + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - y);
+		int minX = l.getX() - Math.min(drawDistance, x - 1) * Perspective.LOCAL_TILE_SIZE;
+		int minY = l.getY() - Math.min(drawDistance, y - 1) * Perspective.LOCAL_TILE_SIZE;
+		int maxX = l.getX() + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - x) * Perspective.LOCAL_TILE_SIZE;
+		int maxY = l.getY() + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - y) * Perspective.LOCAL_TILE_SIZE;
 
 		return new int[][]{{minX, maxX}, {minY, maxY}};
 	}
-
-	private int[][] getLocalBounds()
-	{
-		int[][] bounds = getSceneBounds();
-		for (int[] axis : bounds)
-		{
-			for (int i = 0; i < axis.length; i++)
-			{
-				axis[i] *= Perspective.LOCAL_TILE_SIZE;
-				axis[i] += Perspective.LOCAL_HALF_TILE_SIZE;
-			}
-		}
-		return bounds;
-	}
-
-//	private int[][] getLocalBounds()
-//	{
-//		// TODO: Z bounds could be improved by tracking min and max height while uploading tiles and models
-//		// TODO: Could swap Y and Z here to avoid having to swap back and forth for calculations
-//		return new int[][]
-//			{
-//				{ 128,  13056 },
-//				{   0, Integer.MIN_VALUE },
-//				{ 128,  13056 }
-//			};
-//	}
-
-//	private float[] getLocalBounds()
-//	{
-//		float[] bounds = new float[4];
-//
-//		Player p = client.getLocalPlayer();
-//		if (p != null)
-//		{
-//			LocalPoint l = p.getLocalLocation();
-//
-//			int localX = l.getX();
-//			int localY = l.getY();
-//
-//			float sceneX = (float) l.getX() / Perspective.LOCAL_TILE_SIZE;
-//			float sceneY = (float) l.getY() / Perspective.LOCAL_TILE_SIZE;
-//
-//			float minLocalX = (1 - sceneX) * Perspective.LOCAL_TILE_SIZE + localX;
-//			float minLocalY = (1 - sceneY) * Perspective.LOCAL_TILE_SIZE + localY;
-//			float maxLocalX = (Perspective.SCENE_SIZE - 2 - sceneX) * Perspective.LOCAL_TILE_SIZE + localX;
-//			float maxLocalY = (Perspective.SCENE_SIZE - 2 - sceneY) * Perspective.LOCAL_TILE_SIZE + localY;
-//
-//			bounds[0] = minLocalX;
-//			bounds[1] = minLocalY;
-//			bounds[2] = maxLocalX;
-//			bounds[3] = maxLocalY;
-//		}
-//
-//		return bounds;
-//	}
 }
