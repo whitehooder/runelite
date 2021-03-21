@@ -223,7 +223,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int maxShadowDistance()
 	{
-		return 30;
+		return 40;
 	}
 
 	@ConfigItem(
@@ -341,7 +341,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default FaceCullingMode colorPassFaceCulling()
 	{
-		return FaceCullingMode.BACK;
+		return FaceCullingMode.DISABLE;
 	}
 
 	@ConfigItem(
