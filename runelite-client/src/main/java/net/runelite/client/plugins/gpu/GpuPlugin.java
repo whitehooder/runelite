@@ -2226,10 +2226,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 				model.calculateBoundsCylinder();
 
-//				if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
-//				{
-//					return;
-//				}
+				if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
+				{
+					return;
+				}
 
 				model.calculateExtreme(orientation);
 				client.checkClickbox(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash);
@@ -2256,10 +2256,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 			model.calculateBoundsCylinder();
 
-//			if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
-//			{
-//				return;
-//			}
+			if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
+			{
+				return;
+			}
 
 			model.calculateExtreme(orientation);
 			client.checkClickbox(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash);
@@ -2294,10 +2294,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 				model.calculateBoundsCylinder();
 
-//				if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
-//				{
-//					return;
-//				}
+				if (!isVisible(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash))
+				{
+					return;
+				}
 
 				model.calculateExtreme(orientation);
 				client.checkClickbox(model, orientation, pitchSin, pitchCos, yawSin, yawCos, x, y, z, hash);
