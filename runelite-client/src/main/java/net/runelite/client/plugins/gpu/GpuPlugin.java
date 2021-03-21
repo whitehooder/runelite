@@ -1600,7 +1600,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						{
 							offsetX -= loc.getX();
 							offsetY -= loc.getY();
-							offsetZ -= -player.getLogicalHeight() / 2;
+							offsetZ -= 0;
 
 							int[][][] tileHeights = client.getTileHeights();
 							int plane = client.getPlane();
