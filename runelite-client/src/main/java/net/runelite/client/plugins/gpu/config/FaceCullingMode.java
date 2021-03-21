@@ -31,9 +31,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum FaceCullingMode
 {
-	BACK("Normal"),
-	FRONT("Front faces"),
-	DISABLE("Disable");
+	DISABLE("Disable"),
+	BACK("Back faces"),
+	FRONT("Front faces");
 
 	private final String name;
 
