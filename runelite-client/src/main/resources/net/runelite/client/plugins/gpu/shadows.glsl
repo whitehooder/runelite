@@ -51,7 +51,7 @@ float sampleDepthMap(sampler2D tex, vec3 coords) {
             }
             return shadow / pow(n, 2);
         default:
-            return 0;
+            return 0.f;
     }
 }
 
