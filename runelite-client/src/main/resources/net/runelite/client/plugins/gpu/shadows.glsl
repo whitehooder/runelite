@@ -55,30 +55,6 @@ float sampleDepthMap(sampler2D tex, vec3 coords) {
     }
 }
 
-vec3 sampleColorMap(sampler2D tex, vec2 coords) {
-    return texture(tex, coords).rgb;
-
-    switch (shadowMappingTechnique) {
-        case 0: // Basic
-            return texture(tex, coords).rgb;
-        case 1: // PCF
-            int n = shadowMappingKernelSize;
-            int to = n / 2;
-            int from = to - n + 1;
-
-            vec3 c = vec3(0);
-            vec2 size = textureSize(tex, 0);
-            float xSize = 1.0 / size.x;
-            float ySize = 1.0 / size.y;
-            for (int x = from; x <= to; ++x)
-                for (int y = from; y <= to; ++y)
-                    c += texture(tex, coords + vec2(x * xSize, y * ySize)).rgb;
-            return c / pow(n, 2);
-        default:
-            return vec3(1);
-    }
-}
-
 vec4 applyShadows(vec4 c) {
     if (!enableShadows)
         return c;
@@ -122,17 +98,15 @@ vec4 applyShadows(vec4 c) {
             }
         }
 
-//        if (distanceFadeOpacity == 0)
-//            return c;
+        if (distanceFadeOpacity == 0)
+            return c;
 
         float shadow = sampleDepthMap(shadowDepthMap, coords);
-        if (shadow > 0) {
-            c.rgb *= 1 - shadow * shadowOpacity * distanceFadeOpacity;
-        }
+        float effectiveHardShadow = shadow * shadowOpacity * distanceFadeOpacity;
 
-        if (enableShadowTranslucency && shadow < .9) {
+        if (enableShadowTranslucency && shadow < 1) {
             float translucentShadow = sampleDepthMap(shadowColorDepthMap, coords);
-            vec3 translucentShadowColor = sampleColorMap(shadowColorMap, coords.xy);
+            vec3 translucentShadowColor = texture(shadowColorMap, coords.xy).rgb;
 
             float opacity = translucentShadow * distanceFadeOpacity;
             vec3 shadowColor = translucentShadowColor;
@@ -140,7 +114,7 @@ vec4 applyShadows(vec4 c) {
             // Invert hue due to blend function inverting color initially
             // If reducing intensity, multiply HSL saturation by intensity
             // If increasing intensity, multiply HSV value by intensity
-            if (shadowColorIntensity < 1) {
+            if (shadowColorIntensity <= 1) {
                 vec3 hsl = rgbToHsl(shadowColor);
                 hsl.x = mod(hsl.x + .5, 1);
                 hsl.y *= shadowColorIntensity;
@@ -152,7 +126,13 @@ vec4 applyShadows(vec4 c) {
                 shadowColor = hsvToRgb(hsv);
             }
 
-            c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity);
+            // Multiplying by the effective hard shadow somewhat fixes edges between
+            // translucent and hard shadows, but it's still not perfect
+            c.rgb *= mix(vec3(1), shadowColor, opacity * shadowOpacity * (1 - effectiveHardShadow));
+        }
+
+        if (effectiveHardShadow > 0) {
+            c.rgb *= 1 - effectiveHardShadow;
         }
     }
 
@@ -165,11 +145,6 @@ vec4 applyShadows(vec4 c) {
         vec2 preOffset = vec2(0.00, 0.00);
         vec2 postOffset = vec2(0.00, 0.00);
         float zoom = 1; // applied after offset
-
-        //            // Window test
-        //            vec2 preOffset = vec2(0.7, 0.00);
-        //            vec2 postOffset = vec2(0, 0.1);
-        //            float zoom = 2; // applied after offset
 
         vec2 uv = gl_FragCoord.xy - vec2(offsetLeft, offsetBottom);
         int tileX = int(floor(uv.x / tileSize));
