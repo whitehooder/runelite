@@ -187,9 +187,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	static final int MAX_DISTANCE = 90;
 	static final int MAX_FOG_DEPTH = 100;
 
-	// TODO: This might have to be a small amount above 0 to fix intersecting objects, if not it should be removed
-	private static final float TRANSLUCENCY_OFFSET = 0; // .001 is too high at least. it makes glass panes appear above curtains in POH
-
 	@Inject
 	private Client client;
 
@@ -399,11 +396,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniShadowTextureLightMode;
 	private int uniShadowTextureOffsets;
 	private int uniShadowTextures;
-	private int uniTranslucencyOffset;
 	private int uniShadowPitch;
 	private int uniShadowYaw;
-	// Duplicate unis
-	private int uniShadowTranslucencyOffset;
+	private int uniShadowDistance;
 
 	// Other uniforms
 	private int uniBlockLarge;
@@ -789,10 +784,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 		// Miscellaneous
 		uniShadowMappingKernelSize = gl.glGetUniformLocation(glProgram, "shadowMappingKernelSize");
-		uniTranslucencyOffset = gl.glGetUniformLocation(glProgram, "translucencyOffset");
-		uniShadowTranslucencyOffset = gl.glGetUniformLocation(glShadowProgram, "translucencyOffset");
 		uniShadowPitch = gl.glGetUniformLocation(glProgram, "shadowPitch");
 		uniShadowYaw = gl.glGetUniformLocation(glProgram, "shadowYaw");
+		uniShadowDistance = gl.glGetUniformLocation(glProgram, "shadowDistance");
 	}
 
 	private void validateProgram() throws ShaderException
@@ -1667,9 +1661,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					gl.glUniform2fv(uniShadowTextureOffsets, 128, textureOffsets, 0);
 					gl.glUniform1f(uniShadowTextureLightMode, config.brightTextures() ? 1f : 0f);
 
-					// Bind other uniforms
-					gl.glUniform1f(uniShadowTranslucencyOffset, TRANSLUCENCY_OFFSET);
-
 					// Bind vertex and UV buffers
 					gl.glBindVertexArray(vaoHandle);
 					gl.glEnableVertexAttribArray(0);
@@ -1883,9 +1874,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			gl.glUniform1i(uniEnableShadowTranslucency, shadowTranslucencyEnabled ? 1 : 0);
 			gl.glUniform1i(uniShadowMappingTechnique, config.shadowMappingTechnique().getId());
 			gl.glUniform1i(uniShadowMappingKernelSize, config.shadowMappingTechnique().getKernelSize());
-			gl.glUniform1f(uniTranslucencyOffset, TRANSLUCENCY_OFFSET);
 			gl.glUniform1f(uniShadowYaw, (float) shadowYaw);
 			gl.glUniform1f(uniShadowPitch, (float) shadowPitch);
+			gl.glUniform1f(uniShadowDistance, (float) config.maxShadowDistance() / 90.f);
 
 			if (shadowsEnabled)
 			{

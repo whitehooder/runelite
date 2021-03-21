@@ -86,11 +86,24 @@ vec4 applyShadows(vec4 c) {
     vec3 coords = fragPosLightSpace.xyz / fragPosLightSpace.w * .5 + .5;
     if (coords.z <= 1 && coords.x >= 0 && coords.x <= 1 && coords.y >= 0 && coords.y <= 1) {
         // Apply bias to prevent flat surfaces casting shadows on themselves
-        float bias = 0.0001;
-//        bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-        // TODO: geometry shader to generate some okay enough surface normals?
+        // TODO: would be handy with surface normals here, but not necessary
+        float bias = 0.00002;
         if (shadowMappingTechnique == 1) {
-            bias = 0.0007;
+            switch (shadowMappingKernelSize) {
+                case 2:
+                    bias = 0.00011;
+                    break;
+                case 3:
+                case 5:
+                    bias = 0.00013 + 0.0002 * shadowDistance;
+                    break;
+                case 7:
+                    bias = 0.00015 + 0.0004 * shadowDistance;
+                    break;
+                case 9:
+                    bias = 0.00020 + 0.0005 * shadowDistance;
+                    break;
+            }
         }
         coords.z -= bias;
 
@@ -118,11 +131,6 @@ vec4 applyShadows(vec4 c) {
         }
 
         if (enableShadowTranslucency && shadow < .9) {
-            if (c.a != 1) {
-                // The Z value is only used by sampleDepthMap
-                coords.z += translucencyOffset;
-            }
-
             float translucentShadow = sampleDepthMap(shadowColorDepthMap, coords);
             vec3 translucentShadowColor = sampleColorMap(shadowColorMap, coords.xy);
 

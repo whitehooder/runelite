@@ -49,8 +49,7 @@ uniform float shadowOpacity;
 uniform float shadowColorIntensity;
 uniform float shadowPitch;
 uniform float shadowYaw;
-uniform float translucencyOffset;
-uniform float translucencyShadowThreshold = 0.5;
+uniform float shadowDistance;
 
 in vec4 Color;
 noperspective centroid in float fHsl;
