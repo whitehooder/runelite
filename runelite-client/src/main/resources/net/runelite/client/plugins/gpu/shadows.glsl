@@ -56,6 +56,8 @@ float sampleDepthMap(sampler2D tex, vec3 coords) {
 }
 
 vec3 sampleColorMap(sampler2D tex, vec2 coords) {
+    return texture(tex, coords).rgb;
+
     switch (shadowMappingTechnique) {
         case 0: // Basic
             return texture(tex, coords).rgb;
@@ -85,10 +87,10 @@ vec4 applyShadows(vec4 c) {
     if (coords.z <= 1 && coords.x >= 0 && coords.x <= 1 && coords.y >= 0 && coords.y <= 1) {
         // Apply bias to prevent flat surfaces casting shadows on themselves
         float bias = 0.0001;
-        //bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+//        bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
         // TODO: geometry shader to generate some okay enough surface normals?
         if (shadowMappingTechnique == 1) {
-            bias = min(0.002, 0.0005 * shadowMappingKernelSize);
+            bias = 0.0007;
         }
         coords.z -= bias;
 
@@ -115,7 +117,7 @@ vec4 applyShadows(vec4 c) {
             c.rgb *= 1 - shadow * shadowOpacity * distanceFadeOpacity;
         }
 
-        if (enableShadowTranslucency && shadow < .1) {
+        if (enableShadowTranslucency && shadow < .9) {
             if (c.a != 1) {
                 // The Z value is only used by sampleDepthMap
                 coords.z += translucencyOffset;
