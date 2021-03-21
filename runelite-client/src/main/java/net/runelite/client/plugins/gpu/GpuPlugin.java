@@ -120,18 +120,17 @@ import jogamp.newt.awt.NewtFactoryAWT;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.BufferProvider;
 import net.runelite.api.Client;
-import net.runelite.api.Constants;
 import net.runelite.api.GameState;
 import net.runelite.api.Model;
 import net.runelite.api.NodeCache;
 import net.runelite.api.Perspective;
+import net.runelite.api.Player;
 import net.runelite.api.Renderable;
 import net.runelite.api.Scene;
 import net.runelite.api.SceneTileModel;
 import net.runelite.api.SceneTilePaint;
 import net.runelite.api.Texture;
 import net.runelite.api.TextureProvider;
-import net.runelite.api.Tile;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.hooks.DrawCallbacks;
@@ -1579,39 +1578,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					}
 				}
 
-				// change yaw a bit to make it look slightly more interesting
-//				if (shadowPitch < 0 || shadowPitch > Math.PI)
-//				{
-//					// night time
-//					activeTintMode = TintMode.NIGHT;
-//					shadowPitch = (shadowPitch + Math.PI) % (2 * Math.PI);
-//
-//					if (!config.useTimeBasedAngles())
-//					{
-//						shadowYaw = (shadowYaw + shadowPitch / 5) % (2 * Math.PI);
-//					}
-//
-//					// Old way of clearing buffers to render shadow everywhere
-//					// The sun is below the surface, so everything should be in shadow since OSRS is flat
-////				gl.glClearDepth(0);
-////				gl.glClear(GL_DEPTH_BUFFER_BIT);
-////
-////				if (shadowTranslucencyEnabled)
-////				{
-////					gl.glBindFramebuffer(GL_FRAMEBUFFER, fboShadowColor);
-////					gl.glClearDepth(0);
-////					gl.glClearColor(1, 1, 1, 0);
-////					gl.glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-////				}
-//				}
-//				else
-//				{
-//					if (!config.useTimeBasedAngles())
-//					{
-//						shadowYaw = (shadowYaw + Math.PI + shadowPitch / 5) % (2 * Math.PI);
-//					}
-//				}
-
 				gl.glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 				gl.glBindFramebuffer(GL_FRAMEBUFFER, fboDepthMap);
 
@@ -1631,83 +1597,61 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				}
 				else
 				{
-					// All of this is rather arbitrary
-					// TODO: change to actually map to tile distance
+					int offsetX = 0, offsetY = 0, offsetZ = 0;
+					Player player = client.getLocalPlayer();
+					if (player != null)
+					{
+						LocalPoint loc = player.getLocalLocation();
+						if (loc != null)
+						{
+							offsetX -= loc.getX();
+							offsetY -= loc.getY();
+							offsetZ -= -player.getLogicalHeight() / 2;
 
-					float shadowAspectRatio = (float) SHADOW_WIDTH / (float) SHADOW_HEIGHT;
-					float shadowResolution = 1024.f / SHADOW_WIDTH;
+							int[][][] tileHeights = client.getTileHeights();
+							int plane = client.getPlane();
+							try
+							{
+								offsetZ -= tileHeights[plane][loc.getSceneX()][loc.getSceneY()];
+							}
+							catch (Exception ex)
+							{
+								// Shouldn't get here
+								log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
+							}
+						}
+					}
 
-					float shadowDistance = config.maxShadowDistance() / 90.f;
+					int[][] bounds = getLocalBounds();
 
-					Tile[][][] tiles = client.getScene().getTiles();
-					int[][][] tileHeights = client.getTileHeights();
-					LocalPoint loc = client.getLocalPlayer().getLocalLocation();
-					int plane = client.getPlane();
+					float left = bounds[0][0];
+					float right = bounds[0][1];
+					float bottom = bounds[1][0];
+					float top = bounds[1][1];
 
-					int offsetX = -loc.getX(), offsetY = -loc.getY(), offsetZ = 0;
-
-					float left = -SHADOW_WIDTH * shadowAspectRatio;
-					float right = SHADOW_WIDTH * shadowAspectRatio;
-					float bottom = -SHADOW_HEIGHT;
-					float top = SHADOW_HEIGHT;
-					float zNear = 0;
+					float zNear = -10000;
 					float zFar = 10000;
 
-					try
-					{
-						int n = Constants.SCENE_SIZE - 1;
-						LocalPoint sw = tiles[plane][0][0].getLocalLocation();
-						LocalPoint ne = tiles[plane][n][n].getLocalLocation();
-						int swHeight = tileHeights[plane][0][0];
-						int neHeight = tileHeights[plane][n][n];
-
-						left = sw.getX() / shadowAspectRatio;
-						right = ne.getX() / shadowAspectRatio;
-						bottom = sw.getY();
-						top = ne.getY();
-
-						// Not ideal
-						zNear = Math.min(swHeight, neHeight);
-						zFar = Math.min(swHeight, neHeight);
-					}
-					catch (Exception ex)
-					{
-						log.warn("Non-existent tile");
-						ex.printStackTrace();
-					}
-
-					try
-					{
-						offsetZ = -tileHeights[client.getPlane()][loc.getSceneX()][loc.getSceneY()];
-					}
-					catch (Exception ex)
-					{
-						// Shouldn't get here
-						// TODO: already noticed it sometimes gets here
-						log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
-					}
-
-					zNear -= 10000 * shadowResolution;
-					zFar += 20000 * shadowResolution;
-
-					float dx = (right - left) * 2;
+					float dx = right - left;
 					float dy = top - bottom;
-					float dz = zFar - zNear;
 
-					float projZoom = 1.f / shadowDistance;
-					lightSpaceProjection.scale(projZoom, projZoom, 1);
+					// Scale the scene projection to fit inside the screen bounds
+					float yawScale = 1 / (float) (1 + Math.abs(Math.sin(shadowYaw * 2)) * (Math.sqrt(2) - 1));
+					float pitchScale = 1 + (float) Math.abs(1 - Math.sin(shadowPitch));
+					lightSpaceProjection.scale(yawScale, yawScale * pitchScale,1);
 
 					// Calculate orthographic projection matrix for shadow mapping
-					lightSpaceProjection.makeOrtho(-dx / 2, dx / 2, -dy / 2, dy / 2, zNear * 2, zFar);
+					lightSpaceProjection.makeOrtho(
+						-dx / 2,
+						dx / 2,
+						-dy / 2,
+						dy / 2,
+						zNear * 2, zFar);
 
 					lightSpaceProjection.rotate((float) (Math.PI - shadowPitch), -1, 0, 0);
 					lightSpaceProjection.rotate((float) shadowYaw, 0, 1, 0);
 
-					lightSpaceProjection.translate(
-						offsetX,
-						offsetZ,
-						offsetY
-					);
+					lightSpaceProjection.translate(-dx / 2 - left, offsetZ, -dy / 2 - bottom);
 
 					lightSpaceProjectionMatrix = lightSpaceProjection.getMatrix();
 
@@ -1800,13 +1744,15 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 						switch (config.colorPassFaceCulling())
 						{
-							case ENABLED:
+							case BACK:
 								gl.glEnable(GL_CULL_FACE);
-							case DISABLED:
+								break;
+							case DISABLE:
 								gl.glDisable(GL_CULL_FACE);
 								break;
 							case FRONT:
 								gl.glCullFace(GL_FRONT);
+								break;
 						}
 
 						// Perform the second render pass
@@ -1814,7 +1760,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					}
 
 					// Cleanup
-					// TODO: clean up unneeded when done
+					// TODO: remove unneeded when done
 					gl.glDisable(GL_DEPTH_TEST);
 					gl.glDepthFunc(GL_LESS);
 					gl.glDisable(GL_CULL_FACE);
@@ -1898,137 +1844,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
 				projectionMatrix = projection.getMatrix();
 			}
-			else
+			else if (config.projectionDebugMode() == ProjectionDebugMode.SHADOW)
 			{
-//				int offsetX = 0, offsetY = 0, offsetZ = 0;
-//				Player player = client.getLocalPlayer();
-//				if (player != null)
-//				{
-//					LocalPoint loc = player.getLocalLocation();
-//
-//					offsetX = -loc.getX();
-//					offsetY = -loc.getY();
-//					offsetZ -= -player.getLogicalHeight() / 2;
-//
-//					int[][][] tileHeights = client.getTileHeights();
-//					int plane = client.getPlane();
-//					try
-//					{
-//						offsetZ = -tileHeights[plane][loc.getSceneX()][loc.getSceneY()];
-//					}
-//					catch (Exception ex)
-//					{
-//						// Shouldn't get here
-//						log.warn(String.format("Non-existent tile: [%d][%d][%d]", plane, loc.getSceneX(), loc.getSceneY()));
-//					}
-//				}
-
-				switch (config.projectionDebugMode())
-				{
-					case ORTHOGRAPHIC:
-//						float[][] bounds = ((BoundsTrackingGpuIntBuffer) this.vertexBuffer).getBoundingBox();
-//
-//						float left = bounds[0][0];
-//						float right = bounds[0][1];
-//						float bottom = bounds[1][0];
-//						float top = bounds[1][1];
-//						float zNear = bounds[2][0];
-//						float zFar = bounds[2][1];
-//
-//						zNear = -3000;
-//						zFar = 6000;
-//
-//						zNear = Integer.MIN_VALUE;
-//						zFar = Integer.MAX_VALUE;
-//
-//						float dx = right - left;
-//						float dy = top - bottom;
-//						float dz = zFar - zNear;
-//
-////						float scale = client.getScale() / 10000.f;
-//						float scale = client.getScale() / 1024.f;
-//						projection.scale(scale, scale, scale);
-//						projection.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							zNear, zFar);
-////						projection.scale(1.f/dx, 1.f/dy, 1.f/dz);
-////						projection.makeOrtho(
-////							-dx / 2.f,
-////							dx / 2.f,
-////							-dy / 2.f,
-////							dy / 2.f,
-////							zNear, zFar);
-//						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projection.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix = projection.getMatrix();
-
-//						projectionMatrix = makeOrthographicProjectionMatrix(viewportWidth, viewportHeight);
-
-
-//						projection.scale(client.getScale() / 1024.f, client.getScale() / 1024.f, 1);
-//						projection.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							Integer.MIN_VALUE, Integer.MAX_VALUE);
-//						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projection.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix = projection.getMatrix();
-						break;
-					case FRUSTUM:
-						projection.scale(client.getScale(), client.getScale(), 1);
-						projection.multMatrix(makePerspectiveProjectionMatrix(viewportWidth, viewportHeight, 50));
-						projection.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-						projection.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-						projection.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
-
-						projectionMatrix = projection.getMatrix();
-
-						Matrix4 viewFrustum = new Matrix4();
-						viewFrustum.multMatrix(projectionMatrix);
-
-
-//						projectionMatrix.scale(client.getScale() / 1024.f, client.getScale() / 1024.f, 1);
-//						projectionMatrix.makeOrtho(
-//							-viewportWidth / 2.f,
-//							viewportWidth / 2.f,
-//							-viewportHeight / 2.f,
-//							viewportHeight / 2.f,
-//							-8000, 8000);
-//						projectionMatrix.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-//						projectionMatrix.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-//						projectionMatrix.translate(
-//							offsetX,
-//							offsetZ,
-//							offsetY
-//						);
-//						projectionMatrix.makeFrustum(
-//							0,
-//							1,
-//							0,
-//							1,
-//							1, 100 // zNear > 0 && zFar > zNear
-//						);
-						break;
-					case SHADOW:
-						projection = lightSpaceProjection;
-						projectionMatrix = projection.getMatrix();
-						break;
-				}
+				projection = lightSpaceProjection;
+				projectionMatrix = projection.getMatrix();
 			}
 
 			// Bind projection matrices
@@ -2588,6 +2407,11 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		return Ints.constrainToRange(config.drawDistance(), 0, limit);
 	}
 
+	private int getShadowDistance()
+	{
+		return Math.min(getDrawDistance(), config.maxShadowDistance());
+	}
+
 	private static void invokeOnMainThread(Runnable runnable)
 	{
 		if (OSType.getOSType() == OSType.MacOS)
@@ -2631,4 +2455,80 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			gl.glBufferSubData(target, 0, size, data);
 		}
 	}
+
+	private int[][] getSceneBounds()
+	{
+		Player p = client.getLocalPlayer();
+		if (p == null)
+		{
+			return new int[][]{{0, 0}, {0, 0}};
+		}
+
+		LocalPoint l = p.getLocalLocation();
+
+		int drawDistance = getShadowDistance();
+		int x = l.getSceneX();
+		int y = l.getSceneY();
+		int minX = x - Math.min(drawDistance, x - 1);
+		int minY = y - Math.min(drawDistance, y - 1);
+		int maxX = x + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - x);
+		int maxY = y + Math.min(drawDistance, Perspective.SCENE_SIZE - 1 - y);
+
+		return new int[][]{{minX, maxX}, {minY, maxY}};
+	}
+
+	private int[][] getLocalBounds()
+	{
+		int[][] bounds = getSceneBounds();
+		for (int[] axis : bounds)
+		{
+			for (int i = 0; i < axis.length; i++)
+			{
+				axis[i] *= Perspective.LOCAL_TILE_SIZE;
+				axis[i] += Perspective.LOCAL_HALF_TILE_SIZE;
+			}
+		}
+		return bounds;
+	}
+
+//	private int[][] getLocalBounds()
+//	{
+//		// TODO: Z bounds could be improved by tracking min and max height while uploading tiles and models
+//		// TODO: Could swap Y and Z here to avoid having to swap back and forth for calculations
+//		return new int[][]
+//			{
+//				{ 128,  13056 },
+//				{   0, Integer.MIN_VALUE },
+//				{ 128,  13056 }
+//			};
+//	}
+
+//	private float[] getLocalBounds()
+//	{
+//		float[] bounds = new float[4];
+//
+//		Player p = client.getLocalPlayer();
+//		if (p != null)
+//		{
+//			LocalPoint l = p.getLocalLocation();
+//
+//			int localX = l.getX();
+//			int localY = l.getY();
+//
+//			float sceneX = (float) l.getX() / Perspective.LOCAL_TILE_SIZE;
+//			float sceneY = (float) l.getY() / Perspective.LOCAL_TILE_SIZE;
+//
+//			float minLocalX = (1 - sceneX) * Perspective.LOCAL_TILE_SIZE + localX;
+//			float minLocalY = (1 - sceneY) * Perspective.LOCAL_TILE_SIZE + localY;
+//			float maxLocalX = (Perspective.SCENE_SIZE - 2 - sceneX) * Perspective.LOCAL_TILE_SIZE + localX;
+//			float maxLocalY = (Perspective.SCENE_SIZE - 2 - sceneY) * Perspective.LOCAL_TILE_SIZE + localY;
+//
+//			bounds[0] = minLocalX;
+//			bounds[1] = minLocalY;
+//			bounds[2] = maxLocalX;
+//			bounds[3] = maxLocalY;
+//		}
+//
+//		return bounds;
+//	}
 }

@@ -32,8 +32,6 @@ import lombok.RequiredArgsConstructor;
 public enum ProjectionDebugMode
 {
 	DISABLED("Disabled"),
-	ORTHOGRAPHIC("Orthographic"),
-	FRUSTUM("Frustum"),
 	SHADOW("Shadow");
 
 	private final String name;
