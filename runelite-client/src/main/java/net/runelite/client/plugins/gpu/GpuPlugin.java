@@ -1457,7 +1457,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			// Setup anisotropic filtering
 			final int anisotropicFilteringLevel = config.anisotropicFilteringLevel();
 
-			{
+			if (textureArrayId != -1 && lastAnisotropicFilteringLevel != anisotropicFilteringLevel) {
 				textureManager.setAnisotropicFilteringLevel(textureArrayId, anisotropicFilteringLevel, gl);
 				lastAnisotropicFilteringLevel = anisotropicFilteringLevel;
 
@@ -1623,7 +1623,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					float bottom = bounds[1][0];
 					float top = bounds[1][1];
 
-					float zNear = -10000;
+					float zNear = -5000;
 					float zFar = 10000;
 
 					float dx = right - left;
