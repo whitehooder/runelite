@@ -257,7 +257,7 @@ public interface GpuPluginConfig extends Config
 
 	@Units(Units.PERCENT)
 	@Range(
-		max = 500,
+		max = 200,
 		slider = true
 	)
 	@ConfigItem(
@@ -341,7 +341,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default FaceCullingMode colorPassFaceCulling()
 	{
-		return FaceCullingMode.DISABLED;
+		return FaceCullingMode.BACK;
 	}
 
 	@ConfigItem(
@@ -382,7 +382,7 @@ public interface GpuPluginConfig extends Config
 
 	@ConfigItem(
 		keyName = "enableDebugMode",
-		name = "Enable debug overlay",
+		name = "Debug shadow maps",
 		description = "Displays the different textures used for shadow mapping.",
 		position = 29
 	)
