@@ -52,6 +52,21 @@ public interface GpuPluginConfig extends Config
 	)
 	String shadowSection = "shadowSection";
 
+	@ConfigSection(
+		name = "Post-porcessing Effects",
+		description = "Options that configure applied post-processing effects",
+		position = 30
+	)
+	String postProcessingSection = "postProcessingSection";
+
+
+	@ConfigSection(
+		name = "Debug",
+		description = "Anything debug-related goes here",
+		position = 40
+	)
+	String debugSection = "debugSection";
+
 	@Range(
 		max = MAX_DISTANCE,
 		slider = true
@@ -381,10 +396,21 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "enableBloom",
+		name = "Enable bloom",
+		description = "Adds bloom to bright objects.",
+		section = postProcessingSection
+	)
+	default boolean enableBloom()
+	{
+		return false;
+	}
+
+	@ConfigItem(
 		keyName = "enableDebugMode",
 		name = "Debug shadow maps",
 		description = "Displays the different textures used for shadow mapping.",
-		position = 29
+		section = debugSection
 	)
 	default boolean enableDebugMode()
 	{
@@ -395,10 +421,21 @@ public interface GpuPluginConfig extends Config
 		keyName = "projectionDebugMode",
 		name = "Projection debug mode",
 		description = "Select debug projection to use for the viewport.",
-		position = 30
+		section = debugSection
 	)
 	default ProjectionDebugMode projectionDebugMode()
 	{
 		return ProjectionDebugMode.DISABLED;
+	}
+
+	@ConfigItem(
+		keyName = "isVisibleCheck",
+		name = "Enable isVisible check",
+		description = "For debugging",
+		section = debugSection
+	)
+	default boolean enableIsVisibleCheck()
+	{
+		return true;
 	}
 }
