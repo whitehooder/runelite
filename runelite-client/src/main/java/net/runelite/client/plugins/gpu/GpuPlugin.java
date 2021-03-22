@@ -98,7 +98,6 @@ import com.jogamp.opengl.GLDrawableFactory;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLFBODrawable;
 import com.jogamp.opengl.GLProfile;
-import com.jogamp.opengl.math.FloatUtil;
 import static com.jogamp.opengl.math.FloatUtil.HALF_PI;
 import static com.jogamp.opengl.math.FloatUtil.PI;
 import static com.jogamp.opengl.math.FloatUtil.TWO_PI;
@@ -1461,10 +1460,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			// Setup anisotropic filtering
 			final int anisotropicFilteringLevel = config.anisotropicFilteringLevel();
 
-			if (textureArrayId != -1 && lastAnisotropicFilteringLevel != anisotropicFilteringLevel) {
+			if (textureArrayId != -1 && lastAnisotropicFilteringLevel != anisotropicFilteringLevel)
+			{
 				textureManager.setAnisotropicFilteringLevel(textureArrayId, anisotropicFilteringLevel, gl);
 				lastAnisotropicFilteringLevel = anisotropicFilteringLevel;
-
 			}
 
 			if (client.isStretchedEnabled())
@@ -1636,7 +1635,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					// Scale the scene projection to fit inside the screen bounds
 					float yawScale = 1 / (float) (1 + Math.abs(Math.sin(shadowYaw * 2)) * (Math.sqrt(2) - 1));
 					float pitchScale = 1 + (float) Math.abs(1 - Math.sin(shadowPitch));
-					lightSpaceProjection.scale(yawScale, yawScale * pitchScale,1);
+					lightSpaceProjection.scale(yawScale, yawScale * pitchScale, 1);
 
 					// Calculate orthographic projection matrix for shadow mapping
 					lightSpaceProjection.makeOrtho(
