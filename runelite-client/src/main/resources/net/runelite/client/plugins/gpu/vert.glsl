@@ -62,7 +62,7 @@ out float fogAmount;
 
 out vec4 fragPosLightSpace;
 
-#include hsl_to_rgb.glsl
+#include utils/jagex_hsl_to_rgb.glsl
 
 float fogFactorLinear(const float dist, const float start, const float end) {
   return 1.0 - clamp((dist - start) / (end - start), 0.0, 1.0);
@@ -75,7 +75,7 @@ void main()
   int hsl = ahsl & 0xffff;
   float a = float(ahsl >> 24 & 0xff) / 255.f;
 
-  vec3 rgb = hslToRgb(hsl);
+  vec3 rgb = jagexHslToRgb(hsl);
 
   gl_Position = projectionMatrix * vec4(vertex, 1.f);
   Color = vec4(rgb, 1.f - a);

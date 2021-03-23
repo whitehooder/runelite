@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,59 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu;
+#version 330
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
+layout (location = 0) in ivec4 VertexPosition;
+layout (location = 1) in vec4 uv;
 
-class GpuFloatBuffer
+uniform float brightness;
+uniform mat4 lightSpaceProjectionMatrix;
+
+out vec4 Color;
+noperspective centroid out float fHsl;
+flat out int textureId;
+out vec2 fUv;
+out float fogAmount;
+
+#include ../utils/jagex_hsl_to_rgb.glsl
+
+void main()
 {
-	private FloatBuffer buffer = allocateDirect(65536);
+    ivec3 vertex = VertexPosition.xyz;
+    int ahsl = VertexPosition.w;
+    int hsl = ahsl & 0xffff;
+    float a = float(ahsl >> 24 & 0xff) / 255.f;
 
-	void put(float texture, float u, float v, float pad)
-	{
-		buffer.put(texture).put(u).put(v).put(pad);
-	}
+    vec3 rgb = jagexHslToRgb(hsl);
 
-	void flip()
-	{
-		buffer.flip();
-	}
-
-	void clear()
-	{
-		buffer.clear();
-	}
-
-	void ensureCapacity(int size)
-	{
-		int capacity = buffer.capacity();
-		final int position = buffer.position();
-		if ((capacity - position) < size)
-		{
-			do
-			{
-				capacity *= 2;
-			}
-			while ((capacity - position) < size);
-
-			FloatBuffer newB = allocateDirect(capacity);
-			buffer.flip();
-			newB.put(buffer);
-			buffer = newB;
-		}
-	}
-
-	FloatBuffer getBuffer()
-	{
-		return buffer;
-	}
-
-	static FloatBuffer allocateDirect(int size)
-	{
-		return ByteBuffer.allocateDirect(size * Float.BYTES)
-			.order(ByteOrder.nativeOrder())
-			.asFloatBuffer();
-	}
+    gl_Position = lightSpaceProjectionMatrix * vec4(vertex, 1.f);
+    Color = vec4(rgb, 1.f - a);
+    fHsl = float(hsl);
+    textureId = int(uv.x);
+    fUv = uv.yz;
 }

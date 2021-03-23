@@ -22,35 +22,64 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package net.runelite.client.plugins.gpu.util;
 
-#version 330
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 
-layout (location = 0) in ivec4 VertexPosition;
-layout (location = 1) in vec4 uv;
-
-uniform float brightness;
-uniform mat4 lightSpaceProjectionMatrix;
-
-out vec4 Color;
-noperspective centroid out float fHsl;
-flat out int textureId;
-out vec2 fUv;
-out float fogAmount;
-
-#include hsl_to_rgb.glsl
-
-void main()
+public class GpuIntBuffer
 {
-    ivec3 vertex = VertexPosition.xyz;
-    int ahsl = VertexPosition.w;
-    int hsl = ahsl & 0xffff;
-    float a = float(ahsl >> 24 & 0xff) / 255.f;
+	private IntBuffer buffer = allocateDirect(65536);
 
-    vec3 rgb = hslToRgb(hsl);
+	public void put(int x, int y, int z)
+	{
+		buffer.put(x).put(y).put(z);
+	}
 
-    gl_Position = lightSpaceProjectionMatrix * vec4(vertex, 1.f);
-    Color = vec4(rgb, 1.f - a);
-    fHsl = float(hsl);
-    textureId = int(uv.x);
-    fUv = uv.yz;
+	public void put(int x, int y, int z, int c)
+	{
+		buffer.put(x).put(y).put(z).put(c);
+	}
+
+	public void flip()
+	{
+		buffer.flip();
+	}
+
+	public void clear()
+	{
+		buffer.clear();
+	}
+
+	public void ensureCapacity(int size)
+	{
+		int capacity = buffer.capacity();
+		final int position = buffer.position();
+		if ((capacity - position) < size)
+		{
+			do
+			{
+				capacity *= 2;
+			}
+			while ((capacity - position) < size);
+
+			IntBuffer newB = allocateDirect(capacity);
+			buffer.flip();
+			newB.put(buffer);
+			buffer = newB;
+		}
+	}
+
+	public IntBuffer getBuffer()
+	{
+		return buffer;
+	}
+
+	public static IntBuffer allocateDirect(int size)
+	{
+		return ByteBuffer.allocateDirect(size * Integer.BYTES)
+			.order(ByteOrder.nativeOrder())
+			.asIntBuffer();
+	}
 }

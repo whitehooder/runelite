@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,12 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu;
+#version 330
 
-class ShaderException extends Exception
+uniform sampler2D texColor;
+uniform sampler2D texBloom;
+uniform float exposure = 1;
+
+in vec2 TexCoords;
+out vec4 FragColor;
+
+void main()
 {
-	ShaderException(String message)
-	{
-		super(message);
-	}
+    const float gamma = 2.2;
+    vec3 hdrColor = texture(texColor, TexCoords).rgb;
+    vec3 bloomColor = texture(texBloom, TexCoords).rgb;
+    hdrColor += bloomColor; // additive blending
+    // tone mapping
+    vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
+    // also gamma correct while we're at it
+    result = pow(result, vec3(1.0 / gamma));
+    FragColor = vec4(result, 1.0);
 }

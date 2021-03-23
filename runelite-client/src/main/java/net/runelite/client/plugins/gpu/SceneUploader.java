@@ -42,6 +42,8 @@ import net.runelite.api.SceneTileModel;
 import net.runelite.api.SceneTilePaint;
 import net.runelite.api.Tile;
 import net.runelite.api.WallObject;
+import net.runelite.client.plugins.gpu.util.GpuFloatBuffer;
+import net.runelite.client.plugins.gpu.util.GpuIntBuffer;
 
 @Singleton
 @Slf4j

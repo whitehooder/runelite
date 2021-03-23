@@ -24,11 +24,9 @@
  */
 #define PI 3.1415926535897932384626433832795f
 
-#include color_funcs.glsl
-
 float nightTransitionThreshold = PI / 5.f;
 
-// TODO: once settled on a number of kernel sizes for PCF, we should unroll them for better performance
+// TODO: once settled on a number of kernel sizes for PCF, we could consider unroll them for better performance
 
 float sampleDepthMap(sampler2D tex, vec3 coords) {
     switch (shadowMappingTechnique) {
@@ -56,9 +54,6 @@ float sampleDepthMap(sampler2D tex, vec3 coords) {
 }
 
 vec4 applyShadows(vec4 c) {
-    if (!enableShadows)
-        return c;
-
     vec3 coords = fragPosLightSpace.xyz / fragPosLightSpace.w * .5 + .5;
     if (coords.z <= 1 && coords.x >= 0 && coords.x <= 1 && coords.y >= 0 && coords.y <= 1) {
         // Apply bias to prevent flat surfaces casting shadows on themselves

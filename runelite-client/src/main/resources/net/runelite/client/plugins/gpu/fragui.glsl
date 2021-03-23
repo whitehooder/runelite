@@ -38,7 +38,7 @@ uniform vec4 alphaOverlay;
 
 #include scale/bicubic.glsl
 #include scale/xbr_lv2_frag.glsl
-#include colorblind.glsl
+#include utils/colorblind.glsl
 
 in vec2 TexCoord;
 in XBRTable xbrTable;

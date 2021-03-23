@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Texture;
 import net.runelite.api.TextureProvider;
+import net.runelite.client.plugins.gpu.util.GLUtil;
 
 @Singleton
 @Slf4j

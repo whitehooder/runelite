@@ -46,16 +46,23 @@ import net.runelite.client.plugins.gpu.config.UIScalingMode;
 public interface GpuPluginConfig extends Config
 {
 	@ConfigSection(
+		name = "General",
+		description = "General GPU settings.",
+		position = 0
+	)
+	String generalSection = "generalSection";
+
+	@ConfigSection(
 		name = "Shadows",
 		description = "Options that configure shadows",
-		position = 12
+		position = 1
 	)
 	String shadowSection = "shadowSection";
 
 	@ConfigSection(
-		name = "Post-porcessing Effects",
+		name = "Post-Processing Effects",
 		description = "Options that configure applied post-processing effects",
-		position = 30
+		position = 2
 	)
 	String postProcessingSection = "postProcessingSection";
 
@@ -63,7 +70,7 @@ public interface GpuPluginConfig extends Config
 	@ConfigSection(
 		name = "Debug",
 		description = "Anything debug-related goes here",
-		position = 40
+		position = 3
 	)
 	String debugSection = "debugSection";
 
@@ -75,7 +82,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "drawDistance",
 		name = "Draw Distance",
 		description = "Draw distance",
-		position = 1
+		section = generalSection,
+		position = 0
 	)
 	default int drawDistance()
 	{
@@ -86,7 +94,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "smoothBanding",
 		name = "Remove Color Banding",
 		description = "Smooths out the color banding that is present in the CPU renderer",
-		position = 2
+		section = generalSection,
+		position = 1
 	)
 	default boolean smoothBanding()
 	{
@@ -97,7 +106,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "antiAliasingMode",
 		name = "Anti Aliasing",
 		description = "Configures the anti-aliasing mode",
-		position = 3
+		section = generalSection,
+		position = 2
 	)
 	default AntiAliasingMode antiAliasingMode()
 	{
@@ -108,7 +118,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "uiScalingMode",
 		name = "UI scaling mode",
 		description = "Sampling function to use for the UI in stretched mode",
-		position = 4
+		section = generalSection,
+		position = 3
 	)
 	default UIScalingMode uiScalingMode()
 	{
@@ -122,7 +133,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "fogDepth",
 		name = "Fog depth",
 		description = "Distance from the scene edge the fog starts",
-		position = 5
+		section = generalSection,
+		position = 4
 	)
 	default int fogDepth()
 	{
@@ -132,9 +144,10 @@ public interface GpuPluginConfig extends Config
 	@ConfigItem(
 		keyName = "useComputeShaders",
 		name = "Compute Shaders",
-		description = "Offloads face sorting to GPU, enabling extended draw distance. Requires plugin restart.",
-		warning = "This feature requires OpenGL 4.3 to use. Please check that your GPU supports this.\nRestart the plugin for changes to take effect.",
-		position = 6
+		description = "Offloads face sorting to GPU, enabling extended draw distance.",
+		warning = "This feature requires OpenGL 4.3 to use. Please check that your GPU supports this.",
+		section = generalSection,
+		position = 5
 	)
 	default boolean useComputeShaders()
 	{
@@ -148,7 +161,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "anisotropicFilteringLevel",
 		name = "Anisotropic Filtering",
 		description = "Configures the anisotropic filtering level.",
-		position = 7
+		section = generalSection,
+		position = 6
 	)
 	default int anisotropicFilteringLevel()
 	{
@@ -159,7 +173,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "colorBlindMode",
 		name = "Colorblindness Correction",
 		description = "Adjusts colors to account for colorblindness",
-		position = 8
+		section = generalSection,
+		position = 7
 	)
 	default ColorBlindMode colorBlindMode()
 	{
@@ -170,7 +185,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "brightTextures",
 		name = "Bright Textures",
 		description = "Use old texture lighting method which results in brighter game textures",
-		position = 9
+		section = generalSection,
+		position = 8
 	)
 	default boolean brightTextures()
 	{
@@ -180,9 +196,9 @@ public interface GpuPluginConfig extends Config
 	@ConfigItem(
 		keyName = "enableShadows",
 		name = "Enable shadows",
-		description = "Enable directional shadows.",
-		position = 10,
-		section = shadowSection
+		description = "Enable drawing shadows to the scene.",
+		section = shadowSection,
+		position = 0
 	)
 	default boolean enableShadows()
 	{
@@ -193,8 +209,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "enableShadowTranslucency",
 		name = "Enable translucency",
 		description = "Enable proper shadows for translucent objects.",
-		position = 11,
-		section = shadowSection
+		section = shadowSection,
+		position = 1
 	)
 	default boolean enableShadowTranslucency()
 	{
@@ -205,8 +221,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "shadowResolution",
 		name = "Shadow resolution",
 		description = "Higher = more crisp. If the resolution isn't supported, the max supported resolution will be used instead.",
-		position = 12,
-		section = shadowSection
+		section = shadowSection,
+		position = 2
 	)
 	default TextureResolution shadowResolution()
 	{
@@ -217,8 +233,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "shadowMappingTechnique",
 		name = "Technique",
 		description = "Configure which technique is used for shadow mapping. These can have a large impact on performance and quality. Note even numbers shift the shadow by half a texture coordinate.",
-		position = 13,
-		section = shadowSection
+		section = shadowSection,
+		position = 3
 	)
 	default ShadowMappingTechnique shadowMappingTechnique()
 	{
@@ -231,10 +247,10 @@ public interface GpuPluginConfig extends Config
 	)
 	@ConfigItem(
 		keyName = "shadowDistance",
-		name = "Shadow distance (WIP)",
+		name = "Shadow distance",
 		description = "The longer the distance, the lower the shadow quality becomes. The detail will be improved considerably going forward. Baby steps :)",
-		position = 14,
-		section = shadowSection
+		section = shadowSection,
+		position = 4
 	)
 	default int maxShadowDistance()
 	{
@@ -245,8 +261,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "distanceFadeMode",
 		name = "Distance fade mode",
 		description = "Configures whether and how the shadow will fade out over distance.",
-		position = 15,
-		section = shadowSection
+		section = shadowSection,
+		position = 5
 	)
 	default DistanceFadeMode distanceFadeMode()
 	{
@@ -262,8 +278,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "shadowOpacity",
 		name = "Shadow opacity",
 		description = "Lower = softer shadows, higher = harder shadows.",
-		position = 16,
-		section = shadowSection
+		section = shadowSection,
+		position = 6
 	)
 	default int shadowOpacity()
 	{
@@ -279,12 +295,24 @@ public interface GpuPluginConfig extends Config
 		keyName = "shadowColorIntensity",
 		name = "Shadow color intensity",
 		description = "Only has an effect when colored shading is enabled.",
-		position = 17,
-		section = shadowSection
+		section = shadowSection,
+		position = 7
 	)
 	default int shadowColorIntensity()
 	{
 		return 100;
+	}
+
+	@ConfigItem(
+		keyName = "useTimeBasedAngles",
+		name = "Time-synchronized sun",
+		description = "Synchronizes shadows with global UTC time.",
+		section = shadowSection,
+		position = 8
+	)
+	default boolean useTimeBasedAngles()
+	{
+		return true;
 	}
 
 	@Units(Units.DEGREES)
@@ -297,8 +325,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "sunAngleHorizontal",
 		name = "Sun angle horizontal",
 		description = "Configures the angle of the sun in the horizontal direction. Hold Ctrl to restrict movement and Shift to slow down.",
-		position = 19,
-		section = shadowSection
+		section = shadowSection,
+		position = 9
 	)
 	default int sunAngleHorizontal()
 	{
@@ -315,8 +343,8 @@ public interface GpuPluginConfig extends Config
 		keyName = "sunAngleVertical",
 		name = "Sun angle vertical",
 		description = "Configures the angle of the sun in the vertical direction. Hold Ctrl to restrict movement and Shift to slow down.",
-		position = 20,
-		section = shadowSection
+		section = shadowSection,
+		position = 10
 	)
 	default int sunAngleVertical()
 	{
@@ -324,22 +352,9 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "useTimeBasedAngles",
-		name = "Time-synchronized sun (WIP)",
-		description = "Synchronizes shadows with global UTC time.",
-		position = 21,
-		section = shadowSection
-	)
-	default boolean useTimeBasedAngles()
-	{
-		return true;
-	}
-
-	@ConfigItem(
 		keyName = "tintMode",
 		name = "Color tint mode",
 		description = "Configures color tint/time of day.",
-		position = 22,
 		section = shadowSection
 	)
 	default TintMode tintMode()
@@ -348,34 +363,9 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "colorPassFaceCulling",
-		name = "Color face culling",
-		description = "Configures which faces are culled when rendering the translucency maps. No culling would look perhaps look best if it wasn't for the client automatically culling some faces anyway.",
-		position = 23,
-		section = shadowSection
-	)
-	default FaceCullingMode colorPassFaceCulling()
-	{
-		return FaceCullingMode.DISABLE;
-	}
-
-	@ConfigItem(
-		keyName = "speedUpTime",
-		name = "Speed up time",
-		description = "One day takes one minute.",
-		position = 24,
-		section = shadowSection
-	)
-	default boolean speedUpTime()
-	{
-		return false;
-	}
-
-	@ConfigItem(
 		keyName = "latitude",
 		name = "Latitude",
 		description = "Configure latitude coordinates to use for calculating the sun position.",
-		position = 25,
 		section = shadowSection
 	)
 	default String latitude()
@@ -387,12 +377,23 @@ public interface GpuPluginConfig extends Config
 		keyName = "longitude",
 		name = "Longitude",
 		description = "Configure longitude coordinates to use for calculating the sun position.",
-		position = 26,
 		section = shadowSection
 	)
 	default String longitude()
 	{
 		return "0";
+	}
+
+	@ConfigItem(
+		keyName = "enablePostProcessing",
+		name = "Enable post-processing",
+		description = "Apply enabled post-processing effects to the scene.",
+		section = postProcessingSection,
+		position = 0
+	)
+	default boolean enablePostProcessing()
+	{
+		return false;
 	}
 
 	@ConfigItem(
@@ -402,6 +403,39 @@ public interface GpuPluginConfig extends Config
 		section = postProcessingSection
 	)
 	default boolean enableBloom()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "colorPassFaceCulling",
+		name = "Shadow color face culling",
+		description = "Configures which faces are culled when rendering the translucency maps. No culling would perhaps look best if it wasn't for the client automatically culling some faces anyway.",
+		section = debugSection
+	)
+	default FaceCullingMode colorPassFaceCulling()
+	{
+		return FaceCullingMode.DISABLE;
+	}
+
+	@ConfigItem(
+		keyName = "depthPassFaceCulling",
+		name = "Shadow depth face culling",
+		description = "Configures which faces are culled when rendering the depth maps. Culling front faces is a possible fix for shadow-acne.",
+		section = debugSection
+	)
+	default FaceCullingMode depthPassFaceCulling()
+	{
+		return FaceCullingMode.BACK;
+	}
+
+	@ConfigItem(
+		keyName = "speedUpTime",
+		name = "Speed up time",
+		description = "One day takes one minute.",
+		section = debugSection
+	)
+	default boolean speedUpTime()
 	{
 		return false;
 	}

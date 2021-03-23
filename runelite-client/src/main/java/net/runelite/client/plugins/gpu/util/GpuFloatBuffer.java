@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Adam <Adam@sigterm.info>
+ * Copyright (c) 2018, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,19 +22,59 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu;
+package net.runelite.client.plugins.gpu.util;
 
-import org.jocl.Pointer;
-import org.jocl.cl_mem;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 
-class GLBuffer
+public class GpuFloatBuffer
 {
-	int glBufferId = -1;
-	int size = -1;
-	cl_mem cl_mem;
+	private FloatBuffer buffer = allocateDirect(65536);
 
-	Pointer ptr()
+	public void put(float texture, float u, float v, float pad)
 	{
-		return cl_mem != null ? Pointer.to(cl_mem) : null;
+		buffer.put(texture).put(u).put(v).put(pad);
+	}
+
+	public void flip()
+	{
+		buffer.flip();
+	}
+
+	public void clear()
+	{
+		buffer.clear();
+	}
+
+	public void ensureCapacity(int size)
+	{
+		int capacity = buffer.capacity();
+		final int position = buffer.position();
+		if ((capacity - position) < size)
+		{
+			do
+			{
+				capacity *= 2;
+			}
+			while ((capacity - position) < size);
+
+			FloatBuffer newB = allocateDirect(capacity);
+			buffer.flip();
+			newB.put(buffer);
+			buffer = newB;
+		}
+	}
+
+	public FloatBuffer getBuffer()
+	{
+		return buffer;
+	}
+
+	public static FloatBuffer allocateDirect(int size)
+	{
+		return ByteBuffer.allocateDirect(size * Float.BYTES)
+			.order(ByteOrder.nativeOrder())
+			.asFloatBuffer();
 	}
 }

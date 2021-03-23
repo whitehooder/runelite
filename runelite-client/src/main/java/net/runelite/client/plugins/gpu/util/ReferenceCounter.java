@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,57 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package net.runelite.client.plugins.gpu.util;
 
- #define PI 3.1415926535897932384626433832795f
- #define UNIT PI / 1024.0f
+public class ReferenceCounter
+{
+	private int counter;
 
- layout(std140) uniform uniforms {
-   int cameraYaw;
-   int cameraPitch;
-   int centerX;
-   int centerY;
-   int zoom;
-   int cameraX;
-   int cameraY;
-   int cameraZ;
-   ivec2 sinCosTable[2048];
- };
+	/**
+	 * Increment the reference counter
+	 * @return true when adding the first reference
+	 */
+	public boolean increment()
+	{
+		return counter++ == 0;
+	}
 
- struct modelinfo {
-   int offset;   // offset into buffer
-   int uvOffset; // offset into uv buffer
-   int size;     // length in faces
-   int idx;      // write idx in target buffer
-   int flags;    // radius, orientation
-   int x;        // scene position x
-   int y;        // scene position y
-   int z;        // scene position z
- };
-
- layout(std430, binding = 0) readonly buffer modelbuffer_in {
-   modelinfo ol[];
- };
-
- layout(std430, binding = 1) readonly buffer vertexbuffer_in {
-   ivec4 vb[];
- };
-
- layout(std430, binding = 2) readonly buffer tempvertexbuffer_in {
-   ivec4 tempvb[];
- };
-
- layout(std430, binding = 3) writeonly buffer vertex_out {
-   ivec4 vout[];
- };
-
- layout(std430, binding = 4) writeonly buffer uv_out {
-   vec4 uvout[];
- };
-
- layout(std430, binding = 5) readonly buffer uvbuffer_in {
-   vec4 uv[];
- };
-
- layout(std430, binding = 6) readonly buffer tempuvbuffer_in {
-   vec4 tempuv[];
- };
+	/**
+	 * Decrement the reference counter
+	 * @return true when removing the last reference
+	 */
+	public boolean decrement()
+	{
+		if (--counter == 0)
+		{
+			return true;
+		}
+		else
+		{
+			counter = 0;
+			return false;
+		}
+	}
+}

@@ -31,13 +31,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ShadowMappingTechnique
 {
-	BASIC("Basic", 0, 0),
+	BASIC("Basic", 0, 1),
 	PERCENTAGE_CLOSER_FILTERING_2X2("PCF 2x2", 1, 2),
 	PERCENTAGE_CLOSER_FILTERING_3X3("PCF 3x3", 1, 3),
 	PERCENTAGE_CLOSER_FILTERING_5X5("PCF 5x5", 1, 5),
 	PERCENTAGE_CLOSER_FILTERING_7X7("PCF 7x7", 1, 7),
 	PERCENTAGE_CLOSER_FILTERING_9X9("PCF 9x9", 1, 9),
-	VARIANCE_SHADOW_MAPS("Variance (TODO)", 2, 0);
+	VARIANCE_SHADOW_MAPS("Variance (TODO)", 2, 1);
 
 	private final String name;
 	private final int id;

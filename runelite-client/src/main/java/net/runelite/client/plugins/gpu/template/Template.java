@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -37,7 +39,7 @@ public class Template
 {
 	private final List<Function<String, String>> resourceLoaders = new ArrayList<>();
 
-	public String process(String str)
+	public String process(Path basePath, String str)
 	{
 		StringBuilder sb = new StringBuilder();
 		for (String line : str.split("\r?\n"))
@@ -45,7 +47,24 @@ public class Template
 			if (line.startsWith("#include "))
 			{
 				String resource = line.substring(9);
-				String resourceStr = load(resource);
+				String resourceStr = null;
+				if (basePath != null)
+				{
+					resourceStr = load(Paths.get(basePath.toString(), resource).toFile().getPath());
+				}
+
+				if (resourceStr == null)
+				{
+					// Try non-relative path
+					resourceStr = load(resource);
+				}
+
+				if (resourceStr == null)
+				{
+					// If all else fails, leave the original line in for easier debugging
+					resourceStr = line;
+				}
+
 				sb.append(resourceStr);
 			}
 			else
@@ -63,11 +82,12 @@ public class Template
 			String value = loader.apply(filename);
 			if (value != null)
 			{
-				return process(value);
+				Path basePath = Paths.get(filename).getParent();
+				return process(basePath, value);
 			}
 		}
 
-		return "";
+		return null;
 	}
 
 	public Template add(Function<String, String> fn)

@@ -32,6 +32,8 @@ import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.plugins.gpu.template.Template;
+import net.runelite.client.plugins.gpu.util.GLUtil;
+import net.runelite.client.plugins.gpu.util.ShaderException;
 
 public class Shader
 {
@@ -71,13 +73,17 @@ public class Shader
 			while (i < shaders.length)
 			{
 				Unit unit = units.get(i);
-				int shader = gl.glCreateShader(unit.type);
+				int shader = gl.glCreateShader(unit.getType());
 				if (shader == 0)
 				{
-					throw new ShaderException("Unable to create shader of type " + unit.type);
+					throw new ShaderException("Unable to create shader of type " + unit.getType());
 				}
 
-				String source = template.load(unit.filename);
+				String source = template.load(unit.getFilename());
+				if (source == null)
+				{
+					throw new ShaderException("Unable to locate shader with filename: " + unit.getFilename());
+				}
 				gl.glShaderSource(shader, 1, new String[]{source}, null);
 				gl.glCompileShader(shader);
 
@@ -85,7 +91,7 @@ public class Shader
 				{
 					String err = GLUtil.glGetShaderInfoLog(gl, shader);
 					gl.glDeleteShader(shader);
-					throw new ShaderException(err);
+					throw new ShaderException("Failed to compile shader: " + unit.getFilename() + " - " + err);
 				}
 				gl.glAttachShader(program, shader);
 				shaders[i++] = shader;

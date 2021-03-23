@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,6 @@ uniform float smoothBanding;
 uniform float textureLightMode;
 uniform float minimumOpacity = .1;
 
-uniform float translucencyOffset;
-
 in vec4 Color;
 noperspective centroid in float fHsl;
 flat in int textureId;
@@ -43,7 +41,7 @@ in float fogAmount;
 
 out vec4 FragColor;
 
-#include hsl_to_rgb.glsl
+#include ../utils/jagex_hsl_to_rgb.glsl
 
 void main() {
     vec4 c = Color;
@@ -62,7 +60,7 @@ void main() {
         c = textureColorBrightness * vec4(mul, 1.f);
     } else {
         // pick interpolated hsl or rgb depending on smooth banding setting
-        vec3 rgb = hslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
+        vec3 rgb = jagexHslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
         c = vec4(rgb, Color.a);
     }
 
@@ -86,7 +84,6 @@ void main() {
             if (c.a < minimumOpacity)
                 c.a = minimumOpacity;
             // Move translucent objects sligthly towards the camera since they often intersect
-            gl_FragDepth = gl_FragCoord.z - translucencyOffset;
             FragColor = c * c.a; // Pre-multiply alpha
         }
     }
@@ -134,7 +131,7 @@ void main() {
 
 //    float smoothBanding = 0;
 
-//    vec3 rgb = hslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
+//    vec3 rgb = jagexHslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
 //    c = vec4(rgb, Color.a);
 
 //    c.rg = gl_FragCoord.xy;

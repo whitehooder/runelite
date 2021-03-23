@@ -59,10 +59,12 @@ in float fogAmount;
 in vec4 fragPosLightSpace;
 
 out vec4 FragColor;
+out vec4 BloomColor;
 
-#include hsl_to_rgb.glsl
-#include colorblind.glsl
-#include shadows.glsl
+#include utils/jagex_hsl_to_rgb.glsl
+#include utils/colorblind.glsl
+#include utils/color_funcs.glsl
+#include shadows/funcs.glsl
 
 void main() {
     vec4 c;
@@ -81,11 +83,18 @@ void main() {
         c = textureColorBrightness * vec4(mul, 1.f);
     } else {
         // pick interpolated hsl or rgb depending on smooth banding setting
-        vec3 rgb = hslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
+        vec3 rgb = jagexHslToRgb(int(fHsl)) * smoothBanding + Color.rgb * (1.f - smoothBanding);
         c = vec4(rgb, Color.a);
     }
 
-    c = applyShadows(c);
+    vec3 hsl = rgbToHsl(c.rgb);
+//    if (hsl.z > .1) {
+    BloomColor.rgb = c.rgb;
+//    }
+
+    if (enableShadows) {
+        c = applyShadows(c);
+    }
 
     switch (tintMode)
     {
