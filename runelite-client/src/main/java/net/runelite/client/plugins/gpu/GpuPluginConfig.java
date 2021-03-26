@@ -60,12 +60,11 @@ public interface GpuPluginConfig extends Config
 	String shadowSection = "shadowSection";
 
 	@ConfigSection(
-		name = "Post-Processing Effects",
-		description = "Options that configure applied post-processing effects",
+		name = "Effects",
+		description = "Options that configure various effects",
 		position = 2
 	)
-	String postProcessingSection = "postProcessingSection";
-
+	String effectsSection = "effectsSection";
 
 	@ConfigSection(
 		name = "Debug",
@@ -145,11 +144,10 @@ public interface GpuPluginConfig extends Config
 		keyName = "useComputeShaders",
 		name = "Compute Shaders",
 		description = "Offloads face sorting to GPU, enabling extended draw distance.",
-		warning = "This feature requires OpenGL 4.3 to use. Please check that your GPU supports this.",
 		section = generalSection,
 		position = 5
 	)
-	default boolean useComputeShaders()
+	default boolean enableComputeShaders()
 	{
 		return true;
 	}
@@ -198,7 +196,7 @@ public interface GpuPluginConfig extends Config
 		name = "Enable shadows",
 		description = "Enable drawing shadows to the scene.",
 		section = shadowSection,
-		position = 0
+		position = -9
 	)
 	default boolean enableShadows()
 	{
@@ -210,7 +208,7 @@ public interface GpuPluginConfig extends Config
 		name = "Enable translucency",
 		description = "Enable proper shadows for translucent objects.",
 		section = shadowSection,
-		position = 1
+		position = -8
 	)
 	default boolean enableShadowTranslucency()
 	{
@@ -222,7 +220,7 @@ public interface GpuPluginConfig extends Config
 		name = "Shadow resolution",
 		description = "Higher = more crisp. If the resolution isn't supported, the max supported resolution will be used instead.",
 		section = shadowSection,
-		position = 2
+		position = -7
 	)
 	default TextureResolution shadowResolution()
 	{
@@ -234,7 +232,7 @@ public interface GpuPluginConfig extends Config
 		name = "Technique",
 		description = "Configure which technique is used for shadow mapping. These can have a large impact on performance and quality. Note even numbers shift the shadow by half a texture coordinate.",
 		section = shadowSection,
-		position = 3
+		position = -6
 	)
 	default ShadowMappingTechnique shadowMappingTechnique()
 	{
@@ -250,7 +248,7 @@ public interface GpuPluginConfig extends Config
 		name = "Shadow distance",
 		description = "The longer the distance, the lower the shadow quality becomes. The detail will be improved considerably going forward. Baby steps :)",
 		section = shadowSection,
-		position = 4
+		position = -5
 	)
 	default int maxShadowDistance()
 	{
@@ -262,7 +260,7 @@ public interface GpuPluginConfig extends Config
 		name = "Distance fade mode",
 		description = "Configures whether and how the shadow will fade out over distance.",
 		section = shadowSection,
-		position = 5
+		position = -4
 	)
 	default DistanceFadeMode distanceFadeMode()
 	{
@@ -279,7 +277,7 @@ public interface GpuPluginConfig extends Config
 		name = "Shadow opacity",
 		description = "Lower = softer shadows, higher = harder shadows.",
 		section = shadowSection,
-		position = 6
+		position = -3
 	)
 	default int shadowOpacity()
 	{
@@ -296,7 +294,7 @@ public interface GpuPluginConfig extends Config
 		name = "Shadow color intensity",
 		description = "Only has an effect when colored shading is enabled.",
 		section = shadowSection,
-		position = 7
+		position = -2
 	)
 	default int shadowColorIntensity()
 	{
@@ -307,8 +305,7 @@ public interface GpuPluginConfig extends Config
 		keyName = "useTimeBasedAngles",
 		name = "Time-synchronized sun",
 		description = "Synchronizes shadows with global UTC time.",
-		section = shadowSection,
-		position = 8
+		section = shadowSection
 	)
 	default boolean useTimeBasedAngles()
 	{
@@ -325,8 +322,7 @@ public interface GpuPluginConfig extends Config
 		keyName = "sunAngleHorizontal",
 		name = "Sun angle horizontal",
 		description = "Configures the angle of the sun in the horizontal direction. Hold Ctrl to restrict movement and Shift to slow down.",
-		section = shadowSection,
-		position = 9
+		section = shadowSection
 	)
 	default int sunAngleHorizontal()
 	{
@@ -343,8 +339,7 @@ public interface GpuPluginConfig extends Config
 		keyName = "sunAngleVertical",
 		name = "Sun angle vertical",
 		description = "Configures the angle of the sun in the vertical direction. Hold Ctrl to restrict movement and Shift to slow down.",
-		section = shadowSection,
-		position = 10
+		section = shadowSection
 	)
 	default int sunAngleVertical()
 	{
@@ -385,26 +380,96 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "enablePostProcessing",
-		name = "Enable post-processing",
-		description = "Apply enabled post-processing effects to the scene.",
-		section = postProcessingSection,
-		position = 0
-	)
-	default boolean enablePostProcessing()
-	{
-		return false;
-	}
-
-	@ConfigItem(
 		keyName = "enableBloom",
 		name = "Enable bloom",
 		description = "Adds bloom to bright objects.",
-		section = postProcessingSection
+		section = effectsSection,
+		position = -2
 	)
 	default boolean enableBloom()
 	{
 		return false;
+	}
+
+	// Arbitrary bloom settings and way too many options, for testing purposes
+
+	@Range(
+		max = 10,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "bloomBlurIterations",
+		name = "Bloom blur iterations",
+		description = "Configures the number of iterations for the blur step of the bloom effect.",
+		section = effectsSection
+	)
+	default int bloomBlurIterations()
+	{
+		return 3;
+	}
+
+	@Range(
+		min = 1,
+		max = 20,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "bloomBlurSize",
+		name = "Bloom blur size",
+		description = "Configures the kernel size of the blur effect.",
+		section = effectsSection
+	)
+	default int bloomBlurSize()
+	{
+		return 5;
+	}
+
+	@Units(Units.PERCENT)
+	@Range(
+		max = 500,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "bloomIntensity",
+		name = "Bloom intensity",
+		description = "Configures the amount of light added by the bloom effect.",
+		section = effectsSection
+	)
+	default int bloomIntensity()
+	{
+		return 150;
+	}
+
+	@Units(Units.PERCENT)
+	@Range(
+		max = 100,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "bloomThresholdBrightness",
+		name = "Bloom threshold brightness",
+		description = "Controls which objects have bloom.",
+		section = effectsSection
+	)
+	default int bloomThresholdBrightness()
+	{
+		return 45;
+	}
+
+	@Units(Units.PERCENT)
+	@Range(
+		max = 100,
+		slider = true
+	)
+	@ConfigItem(
+		keyName = "bloomThresholdSaturation",
+		name = "Bloom threshold saturation",
+		description = "Controls which objects have bloom.",
+		section = effectsSection
+	)
+	default int bloomThresholdSaturation()
+	{
+		return 90;
 	}
 
 	@ConfigItem(

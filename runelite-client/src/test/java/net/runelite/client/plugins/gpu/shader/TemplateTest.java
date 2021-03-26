@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Hooder <https://github.com/aHooder>
+ * Copyright (c) 2018, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +22,46 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#version 330
+package net.runelite.client.plugins.gpu.shader;
 
-layout (location = 0) in ivec4 VertexPosition;
-layout (location = 1) in vec4 uv;
+import java.nio.file.Paths;
+import java.util.function.Function;
+import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
-uniform float brightness;
-uniform mat4 sunProjectionMatrix;
-
-out vec4 Color;
-noperspective centroid out float fHsl;
-flat out int textureId;
-out vec2 fUv;
-out float fogAmount;
-
-#include ../utils/jagex_hsl_to_rgb.glsl
-
-void main()
+public class TemplateTest
 {
-    ivec3 vertex = VertexPosition.xyz;
-    int ahsl = VertexPosition.w;
-    int hsl = ahsl & 0xffff;
-    float a = float(ahsl >> 24 & 0xff) / 255.f;
+	private static final String FILE1 = "" +
+		"test1\n" +
+		"#include file2\n" +
+		"test3\n";
 
-    vec3 rgb = jagexHslToRgb(hsl);
+	private static final String FILE2 = "" +
+		"test4\n" +
+		"test5\n";
 
-    gl_Position = sunProjectionMatrix * vec4(vertex, 1.f);
-    Color = vec4(rgb, 1.f - a);
-    fHsl = float(hsl);
-    textureId = int(uv.x);
-    fUv = uv.yz;
+	private static final String RESULT = "" +
+		"test1\n" +
+		"test4\n" +
+		"test5\n" +
+		"test3\n";
+
+	@Test
+	public void testProcess()
+	{
+		Function<String, String> func = (String resource) ->
+		{
+			switch (resource)
+			{
+				case "file2":
+					return FILE2;
+				default:
+					throw new RuntimeException("unknown resource");
+			}
+		};
+		String out = new Template()
+			.add(func)
+			.process(Paths.get(""), FILE1);
+		assertEquals(RESULT, out);
+	}
 }

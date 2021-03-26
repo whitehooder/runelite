@@ -51,6 +51,9 @@ uniform float shadowPitch;
 uniform float shadowYaw;
 uniform float shadowDistance;
 
+uniform float bloomThresholdBrightness;
+uniform float bloomThresholdSaturation;
+
 in vec4 Color;
 noperspective centroid in float fHsl;
 flat in int textureId;
@@ -58,8 +61,8 @@ in vec2 fUv;
 in float fogAmount;
 in vec4 fragPosLightSpace;
 
-out vec4 FragColor;
-out vec4 BloomColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 BloomColor;
 
 #include utils/jagex_hsl_to_rgb.glsl
 #include utils/colorblind.glsl
@@ -87,10 +90,13 @@ void main() {
         c = vec4(rgb, Color.a);
     }
 
-    vec3 hsl = rgbToHsl(c.rgb);
-//    if (hsl.z > .1) {
-    BloomColor.rgb = c.rgb;
-//    }
+    vec3 hsv = rgbToHsv(c.rgb);
+//    if (hsv.y * hsv.z > .4) {
+    if (hsv.y > bloomThresholdSaturation && hsv.z > bloomThresholdBrightness) {
+        BloomColor = vec4(c.rgb, 1);
+    } else {
+        BloomColor = vec4(vec3(0), 1);
+    }
 
     if (enableShadows) {
         c = applyShadows(c);

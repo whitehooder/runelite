@@ -22,46 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu.template;
+package net.runelite.client.plugins.gpu.shader;
 
-import java.nio.file.Paths;
-import java.util.function.Function;
-import static org.junit.Assert.assertEquals;
-import org.junit.Test;
-
-public class TemplateTest
+public class ShaderException extends Exception
 {
-	private static final String FILE1 = "" +
-		"test1\n" +
-		"#include file2\n" +
-		"test3\n";
-
-	private static final String FILE2 = "" +
-		"test4\n" +
-		"test5\n";
-
-	private static final String RESULT = "" +
-		"test1\n" +
-		"test4\n" +
-		"test5\n" +
-		"test3\n";
-
-	@Test
-	public void testProcess()
+	public ShaderException(String message)
 	{
-		Function<String, String> func = (String resource) ->
-		{
-			switch (resource)
-			{
-				case "file2":
-					return FILE2;
-				default:
-					throw new RuntimeException("unknown resource");
-			}
-		};
-		String out = new Template()
-			.add(func)
-			.process(Paths.get(""), FILE1);
-		assertEquals(RESULT, out);
+		super(message);
 	}
 }

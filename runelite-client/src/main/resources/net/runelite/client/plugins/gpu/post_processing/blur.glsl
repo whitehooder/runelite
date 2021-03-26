@@ -27,27 +27,22 @@
 #define MAX_KERNEL_SIZE 9
 
 uniform sampler2D image;
-uniform vec2 direction;
-uniform float halfKernel[MAX_KERNEL_SIZE];
+uniform int direction;
 uniform int kernelSize;
+uniform float halfKernel[MAX_KERNEL_SIZE];
 
-in vec2 FragCoord;
+in vec2 uv;
 out vec4 FragColor;
 
-vec4 blur(sampler2D image, vec2 uv, vec2 resolution, vec2 direction) {
-    vec4 color = vec4(0.0);
-    vec2 off1 = vec2(1.3333333333333333) * direction;
-    color += texture2D(image, uv) * 0.29411764705882354;
-    color += texture2D(image, uv + (off1 / resolution)) * 0.35294117647058826;
-    color += texture2D(image, uv - (off1 / resolution)) * 0.35294117647058826;
-    return color;
-}
+// TODO: implement fast box blur without requiring a kernel
 
 void main() {
+    // Calculate the size of a texel in UV coordinates
     vec2 uvOffset = 1.f / textureSize(image, 0);
 
     // Start with applying the kernel middle (index zero)
-    vec3 result = texture(image, FragCoord).rgb * halfKernel[0];
+    vec3 result = texture(image, uv).rgb * halfKernel[0];
+
     // Calculate index to end on, rounding up to support both even and odd numbered kernels
     int end = int(ceil(kernelSize / 2.f));
     // If kernel size is even, start on index 0, otherwise start on index 1
@@ -56,15 +51,15 @@ void main() {
     if (direction == 0) {
         float offset = uvOffset.x;
         do {
-            result += texture(image, vec2(FragCoord.x + offset, 0)).rgb * halfKernel[kernelIdx];
-            result += texture(image, vec2(FragCoord.x - offset, 0)).rgb * halfKernel[kernelIdx];
+            result += texture(image, vec2(uv.x + offset, uv.y)).rgb * halfKernel[kernelIdx];
+            result += texture(image, vec2(uv.x - offset, uv.y)).rgb * halfKernel[kernelIdx];
             offset += uvOffset.x;
         } while (++kernelIdx < end);
     } else {
         float offset = uvOffset.y;
         do {
-            result += texture(image, vec2(0, FragCoord.y + offset)).rgb * halfKernel[kernelIdx];
-            result += texture(image, vec2(0, FragCoord.y - offset)).rgb * halfKernel[kernelIdx];
+            result += texture(image, vec2(uv.x, uv.y + offset)).rgb * halfKernel[kernelIdx];
+            result += texture(image, vec2(uv.x, uv.y - offset)).rgb * halfKernel[kernelIdx];
             offset += uvOffset.y;
         } while (++kernelIdx < end);
     }

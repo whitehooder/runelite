@@ -52,7 +52,7 @@ uniform int useFog;
 uniform int fogDepth;
 uniform int drawDistance;
 uniform mat4 projectionMatrix;
-uniform mat4 lightSpaceProjectionMatrix;
+uniform mat4 sunProjectionMatrix;
 
 out vec4 Color;
 noperspective centroid out float fHsl;
@@ -99,5 +99,5 @@ void main()
 
   fogAmount = fogFactorLinear(fogDistance, 0, fogDepth * TILE_SIZE) * useFog;
 
-  fragPosLightSpace = lightSpaceProjectionMatrix * vec4(vertex, 1);
+  fragPosLightSpace = sunProjectionMatrix * vec4(vertex, 1);
 }

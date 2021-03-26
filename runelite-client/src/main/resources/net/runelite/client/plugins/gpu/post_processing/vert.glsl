@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Hooder <https://github.com/aHooder>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,12 +22,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu.util;
+#version 330
 
-public class ShaderException extends Exception
+layout (location = 0) in vec3 vertex;
+layout (location = 1) in vec2 uvIn;
+
+out vec2 uv;
+
+void main()
 {
-	public ShaderException(String message)
-	{
-		super(message);
-	}
+    gl_Position = vec4(vertex, 1.0);
+    uv = uvIn;
 }

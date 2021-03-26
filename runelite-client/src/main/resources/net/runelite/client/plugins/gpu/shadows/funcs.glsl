@@ -78,18 +78,18 @@ vec4 applyShadows(vec4 c) {
         }
         coords.z -= bias;
 
-        float distanceFadeOpacity = 1;
+        float distanceFadeOpacity = 1.f;
         if (distanceFadeMode > 0) {
             vec2 fadeCoords = abs(coords.xy) * 2 - 1;
             // a bit of duplicate code for readability
             if (distanceFadeMode == 1) {
                 fadeCoords = pow(fadeCoords, vec2(2));
-                distanceFadeOpacity = max(0, 1 - sqrt(pow(fadeCoords.x, 2) + pow(fadeCoords.y, 2)));
+                distanceFadeOpacity = max(0.f, 1.f - sqrt(pow(fadeCoords.x, 2) + pow(fadeCoords.y, 2)));
             } else if (distanceFadeMode == 2) {
                 fadeCoords = pow(fadeCoords, vec2(2));
-                distanceFadeOpacity = max(0, 1 - max(fadeCoords.x, fadeCoords.y));
+                distanceFadeOpacity = max(0.f, 1.f - max(fadeCoords.x, fadeCoords.y));
             } else if (distanceFadeMode == 3) {
-                distanceFadeOpacity = max(0, 1 - sqrt(pow(fadeCoords.x, 2) + pow(fadeCoords.y, 2)));
+                distanceFadeOpacity = max(0.f, 1.f - sqrt(pow(fadeCoords.x, 2) + pow(fadeCoords.y, 2)));
             }
         }
 

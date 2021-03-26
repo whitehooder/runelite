@@ -22,17 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu;
+package net.runelite.client.plugins.gpu.shader;
 
 import com.jogamp.opengl.GL4;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.plugins.gpu.template.Template;
+import net.runelite.client.plugins.gpu.GpuPlugin;
+import static net.runelite.client.plugins.gpu.GpuPlugin.BLUR_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.COMPUTE_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.LINUX_VERSION_HEADER;
+import static net.runelite.client.plugins.gpu.GpuPlugin.POST_PROCESSING_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.SHADOW_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.SMALL_COMPUTE_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.UI_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.UNORDERED_COMPUTE_PROGRAM;
+import static net.runelite.client.plugins.gpu.GpuPlugin.WINDOWS_VERSION_HEADER;
+import net.runelite.client.util.OSType;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -51,25 +64,30 @@ public class ShaderTest
 		String verifier = System.getProperty("glslang.path");
 		Assume.assumeFalse("glslang.path is not set", Strings.isNullOrEmpty(verifier));
 
+		String versionHeader = OSType.getOSType() == OSType.Linux ? LINUX_VERSION_HEADER : WINDOWS_VERSION_HEADER;
+
 		Template[] templates = {
 			new Template()
-				.addInclude(GpuPlugin.class)
 				.add(key ->
-			{
-				if ("version_header".equals(key))
 				{
-					return GpuPlugin.WINDOWS_VERSION_HEADER;
-				}
-				return null;
-			}),
+					if ("version_header".equals(key))
+					{
+						return versionHeader;
+					}
+					return null;
+				})
+				.addInclude(GpuPlugin.class),
 		};
 
 		Shader[] shaders = {
-			GpuPlugin.PROGRAM,
-			GpuPlugin.COMPUTE_PROGRAM,
-			GpuPlugin.SMALL_COMPUTE_PROGRAM,
-			GpuPlugin.UNORDERED_COMPUTE_PROGRAM,
-			GpuPlugin.UI_PROGRAM,
+			PROGRAM,
+			UI_PROGRAM,
+			COMPUTE_PROGRAM,
+			SMALL_COMPUTE_PROGRAM,
+			UNORDERED_COMPUTE_PROGRAM,
+			SHADOW_PROGRAM,
+			POST_PROCESSING_PROGRAM,
+			BLUR_PROGRAM
 		};
 
 		for (Template t : templates)
@@ -114,6 +132,14 @@ public class ShaderTest
 				default:
 					throw new IllegalArgumentException(u.getType() + "");
 			}
+
+			Path dirPath = Paths.get(u.getFilename()).getParent();
+			if (dirPath != null)
+			{
+				File dir = new File(folder, dirPath.toString());
+				dir.mkdirs();
+			}
+
 			File file = new File(folder, u.getFilename() + "." + ext);
 			Files.write(file.toPath(), contents.getBytes(StandardCharsets.UTF_8));
 			args.add(file.getAbsolutePath());

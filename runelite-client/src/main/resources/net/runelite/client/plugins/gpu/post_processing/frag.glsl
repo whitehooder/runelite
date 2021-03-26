@@ -26,20 +26,27 @@
 
 uniform sampler2D texColor;
 uniform sampler2D texBloom;
-uniform float exposure = 1;
 
-in vec2 TexCoords;
+uniform float bloomIntensity;
+//uniform float exposure = 1;
+
+in vec2 uv;
 out vec4 FragColor;
 
 void main()
 {
-    const float gamma = 2.2;
-    vec3 hdrColor = texture(texColor, TexCoords).rgb;
-    vec3 bloomColor = texture(texBloom, TexCoords).rgb;
-    hdrColor += bloomColor; // additive blending
-    // tone mapping
-    vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
-    // also gamma correct while we're at it
-    result = pow(result, vec3(1.0 / gamma));
-    FragColor = vec4(result, 1.0);
+    vec3 c = texture(texColor, uv).rgb;
+    c += texture(texBloom, uv).rgb * bloomIntensity;
+    FragColor = vec4(c, 1);
+//    FragColor = vec4(texture(texBloom, uv).rgb, 1);
+    return;
+//    const float gamma = 2.2;
+//    vec3 hdrColor = texture(texColor, uv).rgb;
+//    vec3 bloomColor = texture(texBloom, uv).rgb;
+//    hdrColor += bloomColor; // additive blending
+//    // tone mapping
+//    vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
+//    // also gamma correct while we're at it
+//    result = pow(result, vec3(1.0 / gamma));
+//    FragColor = vec4(result, 1.0);
 }

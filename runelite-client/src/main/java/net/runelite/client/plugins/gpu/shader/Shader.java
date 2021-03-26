@@ -23,25 +23,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.gpu;
+package net.runelite.client.plugins.gpu.shader;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.jogamp.opengl.GL4;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import net.runelite.client.plugins.gpu.template.Template;
 import net.runelite.client.plugins.gpu.util.GLUtil;
-import net.runelite.client.plugins.gpu.util.ShaderException;
 
 public class Shader
 {
-	@VisibleForTesting
 	final List<Unit> units = new ArrayList<>();
 
 	@RequiredArgsConstructor
-	@VisibleForTesting
 	static class Unit
 	{
 		@Getter

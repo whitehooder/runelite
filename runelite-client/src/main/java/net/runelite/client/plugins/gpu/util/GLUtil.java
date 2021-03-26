@@ -24,9 +24,16 @@
  */
 package net.runelite.client.plugins.gpu.util;
 
+import static com.jogamp.opengl.GL.GL_DRAW_FRAMEBUFFER_BINDING;
+import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER_BINDING;
+import static com.jogamp.opengl.GL2ES2.GL_CURRENT_PROGRAM;
 import com.jogamp.opengl.GL4;
 import java.nio.charset.StandardCharsets;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.plugins.gpu.shader.DynamicShader;
+import net.runelite.client.plugins.gpu.shader.ShaderException;
 
+@Slf4j
 public class GLUtil
 {
 	private static final int ERR_LEN = 1024;
@@ -132,5 +139,79 @@ public class GLUtil
 	{
 		buf[0] = renderBuffer;
 		gl.glDeleteRenderbuffers(1, buf, 0);
+	}
+
+	public static void glUseProgram(GL4 gl, int program)
+	{
+		if (program == 0)
+		{
+			throw new RuntimeException("Attempted to use an uninitialised shader program");
+		}
+		else
+		{
+			gl.glUseProgram(program);
+		}
+	}
+
+	public static void glClearProgram(GL4 gl)
+	{
+		gl.glUseProgram(0);
+	}
+
+	public static int glGetProgram(GL4 gl)
+	{
+		return glGetInteger(gl, GL_CURRENT_PROGRAM);
+	}
+
+	public static int glGetDrawBuffer(GL4 gl)
+	{
+		return glGetInteger(gl, GL_DRAW_FRAMEBUFFER_BINDING);
+	}
+
+	public static int glGetReadBuffer(GL4 gl)
+	{
+		return glGetInteger(gl, GL_READ_FRAMEBUFFER_BINDING);
+	}
+
+	@FunctionalInterface
+	public interface ShaderInitFunction
+	{
+		void init() throws ShaderException;
+	}
+
+	public static void tryShaderInit(ShaderInitFunction initFunction, Runnable errorCallback)
+	{
+		try
+		{
+			initFunction.init();
+		}
+		catch (ShaderException ex)
+		{
+			log.error("ShaderException: ", ex);
+			if (errorCallback != null)
+			{
+				errorCallback.run();
+			}
+		}
+	}
+
+	public static void acquireDynamicShaders(DynamicShader... shaders) throws ShaderException
+	{
+		for (int i = 0; i < shaders.length; i++)
+		{
+			try
+			{
+				shaders[i].acquire();
+			}
+			catch (ShaderException ex)
+			{
+				// Backtrack
+				for (int j = i - 1; j >= 0; j--)
+				{
+					shaders[j].release();
+				}
+				throw ex;
+			}
+		}
 	}
 }
