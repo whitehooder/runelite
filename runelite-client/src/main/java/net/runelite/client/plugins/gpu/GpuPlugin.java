@@ -871,7 +871,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			// The docs for clEnqueueAcquireGLObjects say all pending GL operations must be completed before calling
 			// clEnqueueAcquireGLObjects, and recommends calling glFinish() as the only portable way to do that.
 			// However no issues have been observed from not calling it, and so will leave disabled for now.
-			// gl.glFinish();
+			gl.glFinish();
 
 			openCLManager.compute(
 				unorderedModels, smallModels, largeModels,
