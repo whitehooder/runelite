@@ -38,6 +38,7 @@ import java.util.function.Function;
 public class Template
 {
 	private final List<Function<String, String>> resourceLoaders = new ArrayList<>();
+	private boolean traceIncludes = false;
 
 	public String process(Path basePath, String str)
 	{
@@ -48,24 +49,37 @@ public class Template
 			{
 				String resource = line.substring(9);
 				String resourceStr = null;
+				String path = null;
 				if (basePath != null)
 				{
-					resourceStr = load(Paths.get(basePath.toString(), resource).toFile().getPath());
+					path = Paths.get(basePath.toString(), resource).toFile().getPath();
+					resourceStr = load(path);
 				}
 
 				if (resourceStr == null)
 				{
 					// Try non-relative path
+					path = resource;
 					resourceStr = load(resource);
 				}
 
 				if (resourceStr == null)
 				{
 					// If all else fails, leave the original line in for easier debugging
+					path = null;
 					resourceStr = line;
 				}
 
-				sb.append(resourceStr);
+				if (traceIncludes && path != null)
+				{
+					sb.append("// #include ").append(path).append("\n");
+					sb.append(resourceStr);
+					sb.append("// #endinclude\n");
+				}
+				else
+				{
+					sb.append(resourceStr);
+				}
 			}
 			else
 			{
@@ -119,5 +133,11 @@ public class Template
 		{
 			throw new RuntimeException(e);
 		}
+	}
+
+	Template enableIncludeTracing()
+	{
+		traceIncludes = true;
+		return this;
 	}
 }

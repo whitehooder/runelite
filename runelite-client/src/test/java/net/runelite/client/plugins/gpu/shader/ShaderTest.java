@@ -25,14 +25,19 @@
 package net.runelite.client.plugins.gpu.shader;
 
 import com.jogamp.opengl.GL4;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import joptsimple.internal.Strings;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.plugins.gpu.GpuPlugin;
 import static net.runelite.client.plugins.gpu.GpuPlugin.BLUR_PROGRAM;
@@ -76,7 +81,8 @@ public class ShaderTest
 					}
 					return null;
 				})
-				.addInclude(GpuPlugin.class),
+				.addInclude(GpuPlugin.class)
+				.enableIncludeTracing(),
 		};
 
 		Shader[] shaders = {
@@ -99,12 +105,22 @@ public class ShaderTest
 		}
 	}
 
+	@AllArgsConstructor
+	private class SourceInclude
+	{
+		int fromLine, toLine;
+		String sourceFile, includeFile;
+	}
+
 	private void verify(Template template, Shader shader) throws Exception
 	{
 		File folder = temp.newFolder();
 		List<String> args = new ArrayList<>();
 		args.add(System.getProperty("glslang.path"));
 		args.add("-l");
+
+		ArrayList<SourceInclude> includes = new ArrayList<>();
+
 		for (Shader.Unit u : shader.units)
 		{
 			String contents = template.load(u.getFilename());
@@ -143,13 +159,80 @@ public class ShaderTest
 			File file = new File(folder, u.getFilename() + "." + ext);
 			Files.write(file.toPath(), contents.getBytes(StandardCharsets.UTF_8));
 			args.add(file.getAbsolutePath());
+
+			String[] lines = contents.split("\n");
+			int start = 0;
+			String includeFile = null;
+			for (int i = 0; i < lines.length; i++)
+			{
+				if (lines[i].startsWith("// #include "))
+				{
+					start = i;
+					includeFile = lines[i].substring(12);
+				}
+				else if (lines[i].startsWith("// #endinclude"))
+				{
+					includes.add(new SourceInclude(start, i, u.getFilename(), includeFile));
+				}
+			}
 		}
 
 		ProcessBuilder pb = new ProcessBuilder(args.toArray(new String[0]));
-		pb.inheritIO();
 		Process proc = pb.start();
+
+		String glslangOutput;
+		try (BufferedReader outReader = new BufferedReader(new InputStreamReader(proc.getInputStream())))
+		{
+			glslangOutput = outReader.lines().collect(Collectors.joining(System.lineSeparator()));
+		}
+
 		if (proc.waitFor() != 0)
 		{
+			String[] outputLines = glslangOutput.split("\n");
+
+			for (String line : outputLines)
+			{
+				if (line.startsWith("ERROR: "))
+				{
+					line = line.substring(7);
+					if (line.startsWith(folder.toString() + File.separator))
+					{
+						line = line.substring(folder.toString().length() + 1);
+
+						int sep = line.indexOf(':');
+						if (sep != -1)
+						{
+							String[] parts = line.split(":");
+							String[] sourceFileParts = parts[0].split("\\.");
+							String sourceFile = String.join(".", Arrays.copyOfRange(sourceFileParts, 0, sourceFileParts.length - 1));
+							int lineNumber = Integer.parseInt(parts[1]);
+							String rest = String.join(":", Arrays.copyOfRange(parts, 2, parts.length));
+
+							for (SourceInclude include : includes)
+							{
+								if (include.sourceFile.equals(sourceFile) &&
+									lineNumber >= include.fromLine &&
+									lineNumber <= include.toLine)
+								{
+
+									sourceFile = include.includeFile;
+									lineNumber -= include.fromLine + 1;
+									break;
+								}
+							}
+
+							line = sourceFile + " - line " + lineNumber + " -" + rest;
+						}
+					}
+					System.err.println("ERROR: " + line);
+				}
+				else
+				{
+					// Just to make sure the test doesn't skip any useful information
+					System.out.println(line);
+				}
+			}
+
 			Assert.fail();
 		}
 	}
