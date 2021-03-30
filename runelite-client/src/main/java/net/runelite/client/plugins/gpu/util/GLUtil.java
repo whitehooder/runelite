@@ -30,7 +30,6 @@ import static com.jogamp.opengl.GL2ES2.GL_CURRENT_PROGRAM;
 import com.jogamp.opengl.GL4;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.plugins.gpu.shader.DynamicShader;
 import net.runelite.client.plugins.gpu.shader.ShaderException;
 
 @Slf4j
@@ -129,13 +128,13 @@ public class GLUtil
 		gl.glDeleteFramebuffers(1, buf, 0);
 	}
 
-	public static int glGenRenderbuffer(GL4 gl)
+	public static int glGenRenderBuffer(GL4 gl)
 	{
 		gl.glGenRenderbuffers(1, buf, 0);
 		return buf[0];
 	}
 
-	public static void glDeleteRenderbuffers(GL4 gl, int renderBuffer)
+	public static void glDeleteRenderBuffers(GL4 gl, int renderBuffer)
 	{
 		buf[0] = renderBuffer;
 		gl.glDeleteRenderbuffers(1, buf, 0);
@@ -171,47 +170,5 @@ public class GLUtil
 	public static int glGetReadBuffer(GL4 gl)
 	{
 		return glGetInteger(gl, GL_READ_FRAMEBUFFER_BINDING);
-	}
-
-	@FunctionalInterface
-	public interface ShaderInitFunction
-	{
-		void init() throws ShaderException;
-	}
-
-	public static void tryShaderInit(ShaderInitFunction initFunction, Runnable errorCallback)
-	{
-		try
-		{
-			initFunction.init();
-		}
-		catch (ShaderException ex)
-		{
-			log.error("ShaderException: ", ex);
-			if (errorCallback != null)
-			{
-				errorCallback.run();
-			}
-		}
-	}
-
-	public static void acquireDynamicShaders(DynamicShader... shaders) throws ShaderException
-	{
-		for (int i = 0; i < shaders.length; i++)
-		{
-			try
-			{
-				shaders[i].acquire();
-			}
-			catch (ShaderException ex)
-			{
-				// Backtrack
-				for (int j = i - 1; j >= 0; j--)
-				{
-					shaders[j].release();
-				}
-				throw ex;
-			}
-		}
 	}
 }
