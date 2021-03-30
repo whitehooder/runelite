@@ -111,12 +111,12 @@ vec4 applyShadows(vec4 c) {
             // If increasing intensity, multiply HSV value by intensity
             if (shadowColorIntensity <= 1) {
                 vec3 hsl = rgbToHsl(shadowColor);
-                hsl.x = mod(hsl.x + .5, 1);
+                hsl.x = mod(hsl.x + .5f, 1.f);
                 hsl.y *= shadowColorIntensity;
                 shadowColor = hslToRgb(hsl);
             } else {
                 vec3 hsv = rgbToHsv(shadowColor);
-                hsv.x = mod(hsv.x + .5, 1);
+                hsv.x = mod(hsv.x + .5f, 1.f);
                 hsv.z *= shadowColorIntensity;
                 shadowColor = hsvToRgb(hsv);
             }
