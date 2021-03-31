@@ -174,6 +174,7 @@ import static net.runelite.client.plugins.gpu.util.GLUtil.glGetProgram;
 import static net.runelite.client.plugins.gpu.util.GLUtil.glUseProgram;
 import net.runelite.client.plugins.gpu.util.GpuFloatBuffer;
 import net.runelite.client.plugins.gpu.util.GpuIntBuffer;
+import net.runelite.client.plugins.gpu.util.PingPong;
 import net.runelite.client.ui.DrawManager;
 import net.runelite.client.util.OSType;
 import net.runelite.client.util.SunCalc;
@@ -506,13 +507,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniBlurKernel;
 	private int uniBlurKernelSize;
 
-	// Ping-pong FBO used for two-pass blur of scene textures
-	private int[] fboScenePingPong;
-	private int[] texScenePingPong;
-
-	// Ping-pong FBO used for two-pass blur of shadow color map
-	private int[] fboShadowPingPong;
-	private int[] texShadowPingPong;
+	// PingPongs used for two-pass blur technique
+	private PingPong pingPongScene;
+	private PingPong pingPongShadow;
 
 	@Override
 	protected void startUp()
@@ -1334,21 +1331,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		// Initialize the scene ping-pong FBO used for blurring for the bloom effect
 		if (enableBloom)
 		{
-			fboScenePingPong = new int[2];
-			texScenePingPong = new int[2];
-			gl.glGenFramebuffers(2, fboScenePingPong, 0);
-			gl.glGenTextures(2, texScenePingPong, 0);
-			for (int i = 0; i < 2; i++)
-			{
-				gl.glBindFramebuffer(GL_FRAMEBUFFER, fboScenePingPong[i]);
-				gl.glBindTexture(GL_TEXTURE_2D, texScenePingPong[i]);
-				gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, GL_RGBA, GL_FLOAT, null);
-				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texScenePingPong[i], 0);
-			}
+			pingPongScene = new PingPong(gl, SCENE_COLOR_FORMAT, width, height);
 		}
 
 		// Reset
@@ -1395,16 +1378,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			fboPostProcessingHandle = 0;
 		}
 
-		if (fboScenePingPong != null)
+		if (pingPongScene != null)
 		{
-			gl.glDeleteFramebuffers(2, fboScenePingPong, 0);
-			fboScenePingPong = null;
-		}
-
-		if (texScenePingPong != null)
-		{
-			gl.glDeleteTextures(2, texScenePingPong, 0);
-			texScenePingPong = null;
+			pingPongScene.shutdown();
+			pingPongScene = null;
 		}
 	}
 
@@ -1686,36 +1663,15 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 	private void initShadowBlurFbo()
 	{
-		// Initialize the ping-pong FBO used for blurring the shadow color map
-		fboShadowPingPong = new int[2];
-		texShadowPingPong = new int[2];
-		gl.glGenFramebuffers(2, fboShadowPingPong, 0);
-		gl.glGenTextures(2, texShadowPingPong, 0);
-		for (int i = 0; i < 2; i++)
-		{
-			gl.glBindFramebuffer(GL_FRAMEBUFFER, fboShadowPingPong[i]);
-			gl.glBindTexture(GL_TEXTURE_2D, texShadowPingPong[i]);
-			gl.glTexImage2D(GL_TEXTURE_2D, 0, SHADOW_COLOR_FORMAT,
-				shadowWidth, shadowHeight, 0, GL_RGBA, GL_FLOAT, null);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texShadowPingPong[i], 0);
-		}
+		pingPongShadow = new PingPong(gl, SHADOW_COLOR_FORMAT, shadowWidth, shadowHeight);
 	}
 
 	private void shutdownShadowBlurFbo()
 	{
-		if (fboShadowPingPong != null)
+		if (pingPongShadow != null)
 		{
-			gl.glDeleteFramebuffers(2, fboShadowPingPong, 0);
-			fboShadowPingPong = null;
-		}
-		if (texShadowPingPong != null)
-		{
-			gl.glDeleteTextures(2, texShadowPingPong, 0);
-			texShadowPingPong = null;
+			pingPongShadow.shutdown();
+			pingPongShadow = null;
 		}
 	}
 
@@ -2359,7 +2315,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					{
 						// Source: https://learnopengl.com/Advanced-Lighting/Bloom
 
-						int texResult = applySceneBlur(texPostProcessingHandles[bloomIdx], bloomBlurKernel, config.bloomBlurIterations());
+						int texResult = applyBlur(texPostProcessingHandles[bloomIdx], config.bloomBlurIterations(), bloomBlurKernel, pingPongScene);
 
 						// Bind the blurred texture for the final post-processing step
 						gl.glActiveTexture(GL_TEXTURE3);
@@ -2643,7 +2599,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				// Blur the color map to emulate PCF for colors
 				if (enableShadowTranslucencyColorBlur)
 				{
-					texProcessedShadowColorMap = applyShadowBlur(texShadowTranslucencyColorMap);
+					texProcessedShadowColorMap = applyBlur(texShadowTranslucencyColorMap, 1, shadowBlurKernel, pingPongShadow);
 				}
 				else
 				{
@@ -3264,11 +3220,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	/**
 	 * Applies a 1D blur kernel to the texture vertically and horizontally once per iteration
 	 * @param textureToBlur OpenGL texture
-	 * @param kernel BlurKernel to apply
 	 * @param iterations Number of times to apply blur in each direction
+	 * @param kernel BlurKernel to apply
+	 * @param pingPong PingPong instance containing the FBOs and textures to use for two-pass blur
 	 * @return
 	 */
-	private int applySceneBlur(int textureToBlur, BlurKernel kernel, int iterations)
+	private int applyBlur(int textureToBlur, int iterations, BlurKernel kernel, PingPong pingPong)
 	{
 		int prevProgram = glGetProgram(gl);
 		// Apply two-pass blur to the bloom texture
@@ -3277,60 +3234,22 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		gl.glUniform1fv(uniBlurKernel, kernel.halfKernel.length, kernel.halfKernel, 0);
 		gl.glUniform1i(uniBlurKernelSize, kernel.size);
 
+		// Set necessary state for the blur program to function normally
 		gl.glActiveTexture(GL_TEXTURE0);
+		gl.glDisable(GL_CULL_FACE);
+		gl.glDisable(GL_BLEND);
 
 		int direction = 0;
 		int tex = textureToBlur;
 		for (int i = 0; i < iterations * 2; i++)
 		{
-			gl.glBindFramebuffer(GL_FRAMEBUFFER, fboScenePingPong[direction]);
+			gl.glBindFramebuffer(GL_FRAMEBUFFER, pingPong.fbo[direction]);
 			gl.glUniform1i(uniBlurDirection, direction);
 			gl.glBindTexture(GL_TEXTURE_2D, tex);
 			renderQuad(QuadUV.OPENGL);
 			// Swap texture and direction
-			tex = texScenePingPong[direction];
+			tex = pingPong.tex[direction];
 			direction = 1 - direction;
-		}
-
-		gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		gl.glUseProgram(prevProgram);
-
-		return tex;
-	}
-
-	/**
-	 * Applies a 1D blur kernel to the texture vertically and horizontally once per iteration
-	 * @param textureToBlur OpenGL texture
-	 * @return
-	 */
-	private int applyShadowBlur(int textureToBlur)
-	{
-		// TODO: this currently doesn't work for some reason, so skip it
-		if (true)
-			return textureToBlur;
-		final BlurKernel kernel = shadowBlurKernel;
-		final int iterations = config.bloomBlurIterations();
-
-		int prevProgram = glGetProgram(gl);
-		// Apply two-pass blur to the bloom texture
-		glUseProgram(gl, glBlurProgram);
-
-		gl.glActiveTexture(GL_TEXTURE0);
-
-		gl.glUniform1fv(uniBlurKernel, kernel.halfKernel.length, kernel.halfKernel, 0);
-		gl.glUniform1i(uniBlurKernelSize, kernel.size);
-
-		int direction = 0;
-		int tex = textureToBlur;
-		for (int i = 0; i < iterations * 2; i++)
-		{
-			gl.glBindFramebuffer(GL_FRAMEBUFFER, fboShadowPingPong[direction]);
-			gl.glUniform1i(uniBlurDirection, direction);
-			gl.glBindTexture(GL_TEXTURE_2D, tex);
-			renderQuad(QuadUV.OPENGL);
-			// Swap texture and direction
-			direction = 1 - direction;
-			tex = texShadowPingPong[direction];
 		}
 
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);

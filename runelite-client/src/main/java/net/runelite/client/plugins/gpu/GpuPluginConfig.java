@@ -484,17 +484,6 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "depthPassFaceCulling",
-		name = "Shadow depth face culling",
-		description = "Configures which faces are culled when rendering the depth maps. Culling front faces is a possible fix for shadow-acne.",
-		section = debugSection
-	)
-	default FaceCullingMode depthPassFaceCulling()
-	{
-		return FaceCullingMode.BACK;
-	}
-
-	@ConfigItem(
 		keyName = "speedUpTime",
 		name = "Speed up time",
 		description = "One day takes one minute.",
