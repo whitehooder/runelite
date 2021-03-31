@@ -49,7 +49,6 @@ public class BlurKernel
 		{
 			sum += kernel[i] * 2;
 		}
-		System.out.println("sum: " + sum + ", kernel: " + Arrays.toString(kernel));
 
 //		float fMidpoint = kernelSize / 2.f;
 //		int halfSize = (int) Math.ceil(fMidpoint);

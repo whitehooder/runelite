@@ -487,7 +487,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int uniShadowSunProjectionMatrix;
 
 	// Uniform block with scene-related information
-	private int uniBlockSceneShared;
+//	private int uniBlockSceneShared;
 	// TODO: shared uniform block between main and shadow programs
 
 	// Shadow program uniforms
@@ -2126,7 +2126,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 			// Clear scene
 			int sky = client.getSkyboxColor();
-			float[] skyColor = new float[]
+			float[] skyColor =
 				{
 					(sky >> 16 & 0xFF) / 255f,
 					(sky >> 8 & 0xFF) / 255f,
@@ -3161,14 +3161,14 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			activeTintMode = TintMode.NIGHT;
 
 			double[] moonPos = SunCalc.getMoonPosition(millis, latitude, longitude);
-			double[] moonIllumination = SunCalc.getMoonIllumination(millis, sunPos, moonPos);
+//			double[] moonIllumination = SunCalc.getMoonIllumination(millis, sunPos, moonPos);
 
 			azimuth = moonPos[0];
 			zenith = moonPos[1];
 
-			double illumination = moonIllumination[0],
-				phase = moonIllumination[1],
-				angle = moonIllumination[2];
+//			double illumination = moonIllumination[0],
+//				phase = moonIllumination[1],
+//				angle = moonIllumination[2];
 
 			shadowPitch = zenith;
 			shadowYaw = -azimuth;

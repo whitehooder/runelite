@@ -150,7 +150,6 @@ public class Slider extends JPanel
 				}
 				catch (NumberFormatException e)
 				{
-					e.printStackTrace();
 					Toolkit.getDefaultToolkit().beep();
 				}
 			}

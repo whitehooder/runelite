@@ -92,9 +92,7 @@ public class SunCalc
 	// https://github.com/mourner/suncalc#moon-illumination
 	public static double[] getMoonIllumination(long millis, double[] sunCoords, double[] moonCoords)
 	{
-		double d = toDays(millis);
-		double[] s = sunCoords,
-			m = moonCoords;
+		double[] s = sunCoords, m = moonCoords;
 
 		double sdist = 149598000, // distance from Earth to Sun in km
 			sdec = s[0],
