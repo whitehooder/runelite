@@ -90,16 +90,15 @@ void main() {
         c = vec4(rgb, Color.a);
     }
 
+    if (enableShadows) {
+        c = applyShadows(c);
+    }
+
     vec3 hsv = rgbToHsv(c.rgb);
-//    if (hsv.y * hsv.z > .4) {
     if (hsv.y > bloomThresholdSaturation && hsv.z > bloomThresholdBrightness) {
         BloomColor = vec4(c.rgb, 1);
     } else {
         BloomColor = vec4(vec3(0), 1);
-    }
-
-    if (enableShadows) {
-        c = applyShadows(c);
     }
 
     switch (tintMode)

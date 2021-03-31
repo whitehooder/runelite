@@ -58,6 +58,7 @@ import static com.jogamp.opengl.GL.GL_ONE;
 import static com.jogamp.opengl.GL.GL_ONE_MINUS_SRC_ALPHA;
 import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_RENDERBUFFER;
+import static com.jogamp.opengl.GL.GL_RGB8;
 import static com.jogamp.opengl.GL.GL_RGBA;
 import static com.jogamp.opengl.GL.GL_RGBA16F;
 import static com.jogamp.opengl.GL.GL_SRC_ALPHA;
@@ -100,6 +101,7 @@ import com.jogamp.opengl.GLFBODrawable;
 import com.jogamp.opengl.GLProfile;
 import static com.jogamp.opengl.math.FloatUtil.HALF_PI;
 import static com.jogamp.opengl.math.FloatUtil.PI;
+import static com.jogamp.opengl.math.FloatUtil.QUARTER_PI;
 import static com.jogamp.opengl.math.FloatUtil.TWO_PI;
 import com.jogamp.opengl.math.Matrix4;
 import java.awt.Canvas;
@@ -145,11 +147,13 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.WorldService;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.PluginInstantiationException;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.plugins.gpu.config.AntiAliasingMode;
+import net.runelite.client.plugins.gpu.config.DaylightCycle;
 import net.runelite.client.plugins.gpu.config.ProjectionDebugMode;
 import net.runelite.client.plugins.gpu.config.TextureResolution;
 import net.runelite.client.plugins.gpu.config.TintMode;
@@ -174,10 +178,13 @@ import static net.runelite.client.plugins.gpu.util.GLUtil.glGetProgram;
 import static net.runelite.client.plugins.gpu.util.GLUtil.glUseProgram;
 import net.runelite.client.plugins.gpu.util.GpuFloatBuffer;
 import net.runelite.client.plugins.gpu.util.GpuIntBuffer;
+import net.runelite.client.plugins.gpu.util.MathUtil;
 import net.runelite.client.plugins.gpu.util.PingPong;
 import net.runelite.client.ui.DrawManager;
 import net.runelite.client.util.OSType;
 import net.runelite.client.util.SunCalc;
+import net.runelite.http.api.worlds.World;
+import net.runelite.http.api.worlds.WorldResult;
 import org.jocl.CL;
 import static org.jocl.CL.CL_MEM_READ_ONLY;
 import static org.jocl.CL.CL_MEM_WRITE_ONLY;
@@ -203,10 +210,15 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	static final int MAX_DISTANCE = 90;
 	static final int MAX_FOG_DEPTH = 100;
 
-	static final int SCENE_COLOR_FORMAT = GL_RGBA16F;
-//	static final int SHADOW_COLOR_FORMAT = GL_RGB8;
-	static final int SHADOW_COLOR_FORMAT = GL_RGBA16F;
-	static final float[] COLOR_RGBA_BLACK = {0.f, 0.f, 0.f, 1.f};
+	// These are unnecessary, but OpenGL requires them for glTexImage2D even when no pixel data is supplied
+	public static final int UNUSED_FORMAT = GL_RGBA;
+	public static final int UNUSED_TYPE = GL_FLOAT;
+
+	private static final int SCENE_COLOR_FORMAT = GL_RGBA16F;
+	private static final int SHADOW_COLOR_FORMAT = GL_RGB8;
+
+	private static final int MILLIS_6_HOURS = 6 * 3600_000;
+	private static final int MINUTES_24_HOURS = 1440;
 
 	@Inject
 	private Client client;
@@ -234,6 +246,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 	@Inject
 	private ConfigManager configManager;
+
+	@Inject
+	private WorldService worldService;
 
 	enum ComputeMode
 	{
@@ -1277,7 +1292,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				gl.glGenTextures(texPostProcessingHandles.length, texPostProcessingHandles, 0);
 
 				gl.glBindTexture(GL_TEXTURE_2D, texPostProcessingHandles[sceneIdx]);
-				gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, GL_RGBA, GL_FLOAT, null);
+				gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1287,7 +1302,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				if (enableBloom)
 				{
 					gl.glBindTexture(GL_TEXTURE_2D, texPostProcessingHandles[bloomIdx]);
-					gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, GL_RGBA, GL_FLOAT, null);
+					gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 					gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 					gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 					gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1302,7 +1317,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		else
 		{
 			gl.glBindTexture(GL_TEXTURE_2D, texSceneHandles[sceneIdx]);
-			gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, GL_RGBA, GL_FLOAT, null);
+			gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0,UNUSED_FORMAT, UNUSED_TYPE, null);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1312,7 +1327,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			if (enableBloom)
 			{
 				gl.glBindTexture(GL_TEXTURE_2D, texSceneHandles[bloomIdx]);
-				gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, GL_RGBA, GL_FLOAT, null);
+				gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1618,7 +1633,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		texShadowTranslucencyDepthMap = glGenTexture(gl);
 		gl.glBindTexture(GL_TEXTURE_2D, texShadowTranslucencyDepthMap);
 		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16,
-			shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
+			shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, UNUSED_TYPE, null);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -1628,7 +1643,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		texShadowTranslucencyColorMap = glGenTexture(gl);
 		gl.glBindTexture(GL_TEXTURE_2D, texShadowTranslucencyColorMap);
 		gl.glTexImage2D(GL_TEXTURE_2D, 0, SHADOW_COLOR_FORMAT,
-			shadowWidth, shadowHeight, 0, GL_RGBA, GL_FLOAT, null);
+			shadowWidth, shadowHeight, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -2363,69 +2378,14 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		activeTintMode = config.tintMode();
 		sunProjectionMatrix = new Matrix4();
 
-		shadowYaw = Math.toRadians(config.sunAngleHorizontal());
-		shadowPitch = Math.toRadians(config.sunAngleVertical());
-
-		if (config.useTimeBasedAngles())
-		{
-			double latitude = 0, longitude = 0;
-
-			try
-			{
-				latitude = Double.parseDouble(config.latitude());
-				longitude = Double.parseDouble(config.longitude());
-			}
-			catch (NumberFormatException ex)
-			{
-				log.debug("Invalid value for latitude or longitude coordinate");
-				ex.printStackTrace();
-			}
-
-			long millis = System.currentTimeMillis();
-			if (config.speedUpTime())
-			{
-				millis *= 86400D / 60; // 1 day passes every minute
-			}
-
-			double[] sunPos = SunCalc.getPosition(millis, latitude, longitude);
-			double azimuth = sunPos[0];
-			double zenith = sunPos[1];
-
-			shadowPitch = zenith;
-			shadowYaw = -azimuth;
-
-			// Normalize pitch and yaw
-			shadowPitch = (shadowPitch + 2 * Math.PI) % (Math.PI * 2);
-			shadowYaw = (shadowYaw + 2 * Math.PI) % (Math.PI * 2);
-
-			if (shadowPitch < 0 || shadowPitch > Math.PI)
-			{
-				activeTintMode = TintMode.NIGHT;
-
-				double[] moonPos = SunCalc.getMoonPosition(millis, latitude, longitude);
-				double[] moonIllumination = SunCalc.getMoonIllumination(millis, sunPos, moonPos);
-
-				azimuth = moonPos[0];
-				zenith = moonPos[1];
-
-				double illumination = moonIllumination[0],
-					phase = moonIllumination[1],
-					angle = moonIllumination[2];
-
-				shadowPitch = zenith;
-				shadowYaw = -azimuth;
-
-				// Normalize pitch and yaw
-				shadowPitch = (shadowPitch + 2 * Math.PI) % (Math.PI * 2);
-				shadowYaw = (shadowYaw + 2 * Math.PI) % (Math.PI * 2);
-			}
-		}
+		updateShadowAngles();
 
 		gl.glViewport(0, 0, shadowWidth, shadowHeight);
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, fboDepthMap);
 
 		if (shadowPitch < 0 || shadowPitch > Math.PI)
 		{
+			// TODO: replace with a proper day & night cycle
 			// The sun/moon is below the surface, so everything should be in shadow since OSRS is flat
 			activeTintMode = TintMode.NIGHT;
 
@@ -3127,6 +3087,96 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int getShadowDistance()
 	{
 		return Math.min(getDrawDistance(), config.maxShadowDistance());
+	}
+
+	private void updateShadowAngles()
+	{
+		final DaylightCycle daylightCycle = config.daylightCycle();
+
+		if (daylightCycle.getCycleType() == DaylightCycle.Type.STATIC)
+		{
+			shadowYaw = Math.toRadians(config.sunAngleHorizontal());
+			shadowPitch = Math.toRadians(config.sunAngleVertical());
+			return;
+		}
+
+		long millis = System.currentTimeMillis();
+
+		if (daylightCycle.getCycleType() == DaylightCycle.Type.CIRCULAR)
+		{
+			shadowYaw = TWO_PI * (millis % MILLIS_6_HOURS) / (float) MILLIS_6_HOURS;
+			shadowPitch = daylightCycle == DaylightCycle.ALWAYS_DAY ? QUARTER_PI : TWO_PI - QUARTER_PI;
+			return;
+		}
+
+		millis *= MINUTES_24_HOURS / (double) daylightCycle.getMinutesPerDay();
+
+		// Cambridge, England
+		double latitude = 52.36714, longitude = 0.00434;
+
+		if (daylightCycle == DaylightCycle.EARTH_BASED)
+		{
+			// Set latitude and longitude coordinates based on the current world
+			WorldResult result = worldService.getWorlds();
+			if (result != null)
+			{
+				World world = result.findWorld(client.getWorld());
+				if (world != null)
+				{
+					switch (world.getRegion())
+					{
+						case AUSTRALIA:
+							// Lambert Gravitational Centre
+							latitude = -25.61011;
+							longitude = 134.35481;
+							break;
+						case GERMANY:
+							// Berlin, Germany
+							latitude = 52.51604;
+							longitude = 13.37691;
+							break;
+						case UNITED_STATES_OF_AMERICA:
+							// Geographic center of the contiguous United States
+							latitude = 39.833333;
+							longitude = -98.583333;
+							break;
+					}
+				}
+			}
+		}
+
+		double[] sunPos = SunCalc.getPosition(millis, latitude, longitude);
+		double azimuth = sunPos[0];
+		double zenith = sunPos[1];
+
+		shadowPitch = zenith;
+		shadowYaw = -azimuth;
+
+		// Normalize pitch and yaw
+		shadowPitch = MathUtil.normalizeRadians(shadowPitch);
+		shadowYaw = MathUtil.normalizeRadians(shadowYaw);
+
+		if (shadowPitch < 0 || shadowPitch > Math.PI)
+		{
+			activeTintMode = TintMode.NIGHT;
+
+			double[] moonPos = SunCalc.getMoonPosition(millis, latitude, longitude);
+			double[] moonIllumination = SunCalc.getMoonIllumination(millis, sunPos, moonPos);
+
+			azimuth = moonPos[0];
+			zenith = moonPos[1];
+
+			double illumination = moonIllumination[0],
+				phase = moonIllumination[1],
+				angle = moonIllumination[2];
+
+			shadowPitch = zenith;
+			shadowYaw = -azimuth;
+
+			// Normalize pitch and yaw
+			shadowPitch = MathUtil.normalizeRadians(shadowPitch);
+			shadowYaw = MathUtil.normalizeRadians(shadowYaw);
+		}
 	}
 
 	private static void invokeOnMainThread(Runnable runnable)

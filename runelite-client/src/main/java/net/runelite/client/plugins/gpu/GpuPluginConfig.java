@@ -34,6 +34,7 @@ import static net.runelite.client.plugins.gpu.GpuPlugin.MAX_DISTANCE;
 import static net.runelite.client.plugins.gpu.GpuPlugin.MAX_FOG_DEPTH;
 import net.runelite.client.plugins.gpu.config.AntiAliasingMode;
 import net.runelite.client.plugins.gpu.config.ColorBlindMode;
+import net.runelite.client.plugins.gpu.config.DaylightCycle;
 import net.runelite.client.plugins.gpu.config.FaceCullingMode;
 import net.runelite.client.plugins.gpu.config.DistanceFadeMode;
 import net.runelite.client.plugins.gpu.config.ProjectionDebugMode;
@@ -302,14 +303,14 @@ public interface GpuPluginConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "useTimeBasedAngles",
-		name = "Time-synchronized sun",
-		description = "Synchronizes shadows with global UTC time.",
+		keyName = "daylightCycle",
+		name = "Daylight cycle",
+		description = "Configures what determines the sun's position.",
 		section = shadowSection
 	)
-	default boolean useTimeBasedAngles()
+	default DaylightCycle daylightCycle()
 	{
-		return true;
+		return DaylightCycle.EARTH_BASED;
 	}
 
 	@Units(Units.DEGREES)
@@ -320,7 +321,7 @@ public interface GpuPluginConfig extends Config
 	)
 	@ConfigItem(
 		keyName = "sunAngleHorizontal",
-		name = "Sun angle horizontal",
+		name = "Sun angle horizontal (custom cycle)",
 		description = "Configures the angle of the sun in the horizontal direction. Hold Ctrl to restrict movement and Shift to slow down.",
 		section = shadowSection
 	)
@@ -337,7 +338,7 @@ public interface GpuPluginConfig extends Config
 	)
 	@ConfigItem(
 		keyName = "sunAngleVertical",
-		name = "Sun angle vertical",
+		name = "Sun angle vertical (custom cycle)",
 		description = "Configures the angle of the sun in the vertical direction. Hold Ctrl to restrict movement and Shift to slow down.",
 		section = shadowSection
 	)
@@ -405,7 +406,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int bloomBlurIterations()
 	{
-		return 3;
+		return 1;
 	}
 
 	@Range(
@@ -421,7 +422,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int bloomBlurSize()
 	{
-		return 5;
+		return 10;
 	}
 
 	@Units(Units.PERCENT)
@@ -437,7 +438,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int bloomIntensity()
 	{
-		return 150;
+		return 100;
 	}
 
 	@Units(Units.PERCENT)
@@ -453,7 +454,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int bloomThresholdBrightness()
 	{
-		return 45;
+		return 90;
 	}
 
 	@Units(Units.PERCENT)
@@ -469,7 +470,7 @@ public interface GpuPluginConfig extends Config
 	)
 	default int bloomThresholdSaturation()
 	{
-		return 90;
+		return 0;
 	}
 
 	@ConfigItem(

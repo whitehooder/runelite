@@ -2,23 +2,19 @@ package net.runelite.client.plugins.gpu.util;
 
 import static com.jogamp.opengl.GL.GL_CLAMP_TO_EDGE;
 import static com.jogamp.opengl.GL.GL_COLOR_ATTACHMENT0;
-import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_LINEAR;
-import static com.jogamp.opengl.GL.GL_RGBA;
 import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAG_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MIN_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import com.jogamp.opengl.GL4;
+import static net.runelite.client.plugins.gpu.GpuPlugin.UNUSED_FORMAT;
+import static net.runelite.client.plugins.gpu.GpuPlugin.UNUSED_TYPE;
 
 public class PingPong
 {
-	// These are unnecessary, but OpenGL requires them for glTexImage2D even when no pixel data is supplied
-	private static final int unusedFormat = GL_RGBA;
-	private static final int unusedType = GL_FLOAT;
-
 	private final GL4 gl;
 	private final int internalFormat;
 
@@ -63,7 +59,7 @@ public class PingPong
 		{
 			gl.glBindFramebuffer(GL_FRAMEBUFFER, fbo[i]);
 			gl.glBindTexture(GL_TEXTURE_2D, tex[i]);
-			gl.glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, unusedFormat, unusedType, null);
+			gl.glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
