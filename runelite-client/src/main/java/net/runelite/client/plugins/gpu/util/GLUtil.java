@@ -30,7 +30,6 @@ import static com.jogamp.opengl.GL2ES2.GL_CURRENT_PROGRAM;
 import com.jogamp.opengl.GL4;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.plugins.gpu.shader.ShaderException;
 
 @Slf4j
 public class GLUtil

@@ -1317,7 +1317,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		else
 		{
 			gl.glBindTexture(GL_TEXTURE_2D, texSceneHandles[sceneIdx]);
-			gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0,UNUSED_FORMAT, UNUSED_TYPE, null);
+			gl.glTexImage2D(GL_TEXTURE_2D, 0, SCENE_COLOR_FORMAT, width, height, 0, UNUSED_FORMAT, UNUSED_TYPE, null);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

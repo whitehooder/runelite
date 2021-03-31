@@ -40,7 +40,8 @@ public enum DaylightCycle
 	CUSTOM_SUN_ANGLES("Custom sun angles", Type.STATIC);
 
 	@RequiredArgsConstructor
-	public enum Type {
+	public enum Type
+	{
 		EARTH_BASED,
 		CIRCULAR,
 		STATIC

@@ -350,34 +350,12 @@ public interface GpuPluginConfig extends Config
 	@ConfigItem(
 		keyName = "tintMode",
 		name = "Color tint mode",
-		description = "Configures color tint/time of day.",
+		description = "Configures color tint.",
 		section = shadowSection
 	)
 	default TintMode tintMode()
 	{
 		return TintMode.NORMAL;
-	}
-
-	@ConfigItem(
-		keyName = "latitude",
-		name = "Latitude",
-		description = "Configure latitude coordinates to use for calculating the sun position.",
-		section = shadowSection
-	)
-	default String latitude()
-	{
-		return "0";
-	}
-
-	@ConfigItem(
-		keyName = "longitude",
-		name = "Longitude",
-		description = "Configure longitude coordinates to use for calculating the sun position.",
-		section = shadowSection
-	)
-	default String longitude()
-	{
-		return "0";
 	}
 
 	@ConfigItem(
@@ -482,17 +460,6 @@ public interface GpuPluginConfig extends Config
 	default FaceCullingMode colorPassFaceCulling()
 	{
 		return FaceCullingMode.DISABLE;
-	}
-
-	@ConfigItem(
-		keyName = "speedUpTime",
-		name = "Speed up time",
-		description = "One day takes one minute.",
-		section = debugSection
-	)
-	default boolean speedUpTime()
-	{
-		return false;
 	}
 
 	@ConfigItem(
