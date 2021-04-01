@@ -99,6 +99,8 @@ class OpenCLManager
 	{
 		CL.setExceptionsEnabled(true);
 
+		CL.setLogLevel(LogLevel.LOG_DEBUGTRACE);
+
 		switch (OSType.getOSType())
 		{
 			case Windows:
