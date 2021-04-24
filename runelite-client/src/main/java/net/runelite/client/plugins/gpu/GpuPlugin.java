@@ -55,12 +55,15 @@ import com.jogamp.opengl.GLDrawableFactory;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLFBODrawable;
 import com.jogamp.opengl.GLProfile;
+import static com.jogamp.opengl.math.FloatUtil.HALF_PI;
 import static com.jogamp.opengl.math.FloatUtil.PI;
 import static com.jogamp.opengl.math.FloatUtil.QUARTER_PI;
+import static com.jogamp.opengl.math.FloatUtil.TWO_PI;
 import static com.jogamp.opengl.math.FloatUtil.abs;
 import static com.jogamp.opengl.math.FloatUtil.pow;
 import static com.jogamp.opengl.math.FloatUtil.sin;
 import static com.jogamp.opengl.math.FloatUtil.sqrt;
+import static com.jogamp.opengl.math.FloatUtil.tan;
 import com.jogamp.opengl.math.Matrix4;
 import java.awt.Canvas;
 import java.awt.Dimension;
@@ -1694,37 +1697,114 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		final int zoom = client.get3dZoom();
 		final int modelHeight = model.getModelHeight();
 
-		int Rasterizer3D_clipMidX2 = client.getRasterizer3D_clipMidX2();
-		int Rasterizer3D_clipNegativeMidX = client.getRasterizer3D_clipNegativeMidX();
-		int Rasterizer3D_clipNegativeMidY = client.getRasterizer3D_clipNegativeMidY();
-		int Rasterizer3D_clipMidY2 = client.getRasterizer3D_clipMidY2();
+		int clipMaxX = client.getRasterizer3D_clipMidX2();
+		int clipMinX = client.getRasterizer3D_clipNegativeMidX();
+		int clipCeilY = client.getRasterizer3D_clipNegativeMidY();
+		int clipFloorY = client.getRasterizer3D_clipMidY2();
 
-		int var11 = yawCos * _z - yawSin * _x >> 16;
-		int var12 = pitchSin * _y + pitchCos * var11 >> 16;
-		int var13 = pitchCos * XYZMag >> 16;
-		int var14 = var12 + var13;
-		if (var14 > 50)
+		// _x, _y and _z are relative to the camera
+
+		// Z = depth, negative going away from the screen
+		int yawRotatedZ = yawCos * _z - yawSin * _x >> 16;
+		int pitchAndYawRotatedZ = pitchSin * _y + pitchCos * yawRotatedZ >> 16;
+		int rotatedMag = pitchCos * XYZMag >> 16;
+		// Add visual height to depth, effectively moving it towards the screen,
+		// probably done to not hide models that should be visible even though their
+		// base is outside the viewport.
+		int depth = pitchAndYawRotatedZ + rotatedMag;
+
+		if (shadowsEnabled)
 		{
-			int var15 = _z * yawSin + yawCos * _x >> 16;
-			int var16 = (var15 - XYZMag) * zoom;
-			if (var16 / var14 < Rasterizer3D_clipMidX2)
+			// TODO: Still doesn't account for shadows cast onto tiles lower than the base of the model
+			// Move clip bounds by the length of the shadow the model is casting in either direction
+
+			float sunPitchTan = tan(shadowPitch);
+			if (abs(sunPitchTan) > 1e-6) // Skip when sun rays are parallel with the ground plane
 			{
-				int var17 = (var15 + XYZMag) * zoom;
-				if (var17 / var14 > Rasterizer3D_clipNegativeMidX)
+				int completeHeight = modelHeight + XYZMag;
+				int shadowRadius = (int) (completeHeight / sunPitchTan);
+
+				// Turn X and Z lengths into the camera's view coordinates
+				float cameraYaw = (float) (client.getCameraYaw() * Perspective.UNIT);
+				float relativeSunYaw = shadowYaw - cameraYaw;
+
+				// Invert yaw depending on the sun's vertical angle
+				if (shadowPitch > HALF_PI && shadowPitch < TWO_PI - HALF_PI)
 				{
-					int var18 = pitchCos * _y - var11 * pitchSin >> 16;
-					int var19 = pitchSin * XYZMag >> 16;
-					int var20 = (var18 + var19) * zoom;
-					if (var20 / var14 > Rasterizer3D_clipNegativeMidY)
-					{
-						int var21 = (pitchCos * modelHeight >> 16) + var19;
-						int var22 = (var18 - var21) * zoom;
-						return var22 / var14 < Rasterizer3D_clipMidY2;
-					}
+					relativeSunYaw += PI;
+				}
+				// Normalize to between between -pi and pi
+				relativeSunYaw -= TWO_PI * Math.floor((relativeSunYaw + Math.PI) / TWO_PI);
+
+				int shadowLengthHorizontal = (int) Math.abs(shadowRadius * Math.sin(relativeSunYaw));
+				int shadowLengthNorthSouth = (int) Math.abs(shadowRadius * Math.cos(relativeSunYaw));
+				int shadowLengthVertical = shadowLengthNorthSouth * pitchSin >> 16;
+				int shadowLengthDepth = shadowLengthNorthSouth * pitchCos >> 16;
+
+				if (depth == 0)
+				{
+					return true;
+				}
+				depth += shadowLengthDepth;
+
+				if (relativeSunYaw > 0)
+				{
+					// shadow pointing left
+					clipMaxX += shadowLengthHorizontal;
+				}
+				else
+				{
+					// shadow pointing right
+					clipMinX -= shadowLengthHorizontal;
+				}
+
+				if (Math.abs(relativeSunYaw) < HALF_PI)
+				{
+					// shadow pointing upwards
+					clipFloorY += shadowLengthVertical;
+				}
+				else
+				{
+					// shadow pointing downwards
+					clipCeilY -= shadowLengthVertical;
 				}
 			}
 		}
-		return false;
+
+		// The depth check apparently also removes objects that should be casting shadows into the scene sometimes
+		if (depth <= 50)
+		{
+			return false;
+		}
+
+		// X in rotated world coords, 0 in the middle of the screen, positive to the right
+		int projX = _z * yawSin + yawCos * _x >> 16;
+		// Calculate minimum X value given the object's magnitude
+		int minProjX = (projX - XYZMag) * zoom;
+		if (minProjX / depth >= clipMaxX)
+		{
+			return false;
+		}
+
+		int maxProjX = (projX + XYZMag) * zoom;
+		if (maxProjX / depth <= clipMinX)
+		{
+			return false;
+		}
+
+		// _y is world height relative to camera height
+		// Y in rotated world coords, 0 in the middle with, positive going upwards
+		int projY = pitchCos * _y - yawRotatedZ * pitchSin >> 16;
+		int yMag = pitchSin * XYZMag >> 16;
+		int maxProjY = (projY + yMag) * zoom;
+		if (maxProjY / depth <= clipCeilY)
+		{
+			return false;
+		}
+
+		int rotatedHeight = (pitchCos * modelHeight >> 16) + yMag;
+		int minProjY = (projY - rotatedHeight) * zoom;
+		return minProjY / depth < clipFloorY;
 	}
 
 	/**
