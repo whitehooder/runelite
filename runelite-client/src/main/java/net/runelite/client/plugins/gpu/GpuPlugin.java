@@ -1084,31 +1084,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				lastAnisotropicFilteringLevel = anisotropicFilteringLevel;
 			}
 
-			gl.glUseProgram(glProgram);
-
-			final int sky = client.getSkyboxColor();
-			final int drawDistance = getDrawDistance();
-			final int fogDepth = config.fogDepth();
-			gl.glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
-			gl.glUniform4f(uniFogColor, (sky >> 16 & 0xFF) / 255f, (sky >> 8 & 0xFF) / 255f, (sky & 0xFF) / 255f, 1f);
-			gl.glUniform1i(uniFogDepth, fogDepth);
-			gl.glUniform1i(uniDrawDistance, drawDistance * Perspective.LOCAL_TILE_SIZE);
-
-			// Brightness happens to also be stored in the texture provider, so we use that
-			gl.glUniform1f(uniBrightness, (float) textureProvider.getBrightness());
-			gl.glUniform1f(uniSmoothBanding, config.smoothBanding() ? 0f : 1f);
-			gl.glUniform1i(uniColorBlindMode, config.colorBlindMode().ordinal());
-			gl.glUniform1f(uniTextureLightMode, config.brightTextures() ? 1f : 0f);
-
-			// Calculate projection matrix
-			Matrix4 projectionMatrix = new Matrix4();
-			projectionMatrix.scale(client.getScale(), client.getScale(), 1);
-			projectionMatrix.multMatrix(makeProjectionMatrix(viewportWidth, viewportHeight, 50));
-			projectionMatrix.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
-			projectionMatrix.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
-			projectionMatrix.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
-			gl.glUniformMatrix4fv(uniProjectionMatrix, 1, false, projectionMatrix.getMatrix(), 0);
-
 			for (int id = 0; id < textures.length; ++id)
 			{
 				Texture texture = textures[id];
@@ -1122,24 +1097,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				textureOffsets[id * 2] = texture.getU();
 				textureOffsets[id * 2 + 1] = texture.getV();
 			}
-
-			// Bind samplers to texture units
-			gl.glUniform1i(uniTextures, 1); // texture sampler array is bound to TEXTURE1
-
-			// Bind uniforms
-			gl.glUniformBlockBinding(glProgram, uniBlockMain, 0);
-			gl.glUniform2fv(uniTextureOffsets, 128, textureOffsets, 0);
-
-			// We just allow the GL to do face culling. Note this requires the priority renderer
-			// to have logic to disregard culled faces in the priority depth testing.
-			gl.glEnable(gl.GL_CULL_FACE);
-
-			// Enable blending for alpha
-			gl.glEnable(gl.GL_BLEND);
-			gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
-
-			// Bind vertex and UV buffers
-			gl.glBindVertexArray(vaoHandle);
 
 			int vertexBuffer, uvBuffer;
 			if (computeMode != ComputeMode.NONE)
@@ -1165,6 +1122,41 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				vertexBuffer = tmpVertexBuffer.glBufferId;
 				uvBuffer = tmpUvBuffer.glBufferId;
 			}
+
+			gl.glUseProgram(glProgram);
+
+			final int sky = client.getSkyboxColor();
+			final int drawDistance = getDrawDistance();
+			final int fogDepth = config.fogDepth();
+			gl.glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
+			gl.glUniform4f(uniFogColor, (sky >> 16 & 0xFF) / 255f, (sky >> 8 & 0xFF) / 255f, (sky & 0xFF) / 255f, 1f);
+			gl.glUniform1i(uniFogDepth, fogDepth);
+			gl.glUniform1i(uniDrawDistance, drawDistance * Perspective.LOCAL_TILE_SIZE);
+
+			// Brightness happens to also be stored in the texture provider, so we use that
+			gl.glUniform1f(uniBrightness, (float) textureProvider.getBrightness());
+			gl.glUniform1f(uniSmoothBanding, config.smoothBanding() ? 0f : 1f);
+			gl.glUniform1i(uniColorBlindMode, config.colorBlindMode().ordinal());
+			gl.glUniform1f(uniTextureLightMode, config.brightTextures() ? 1f : 0f);
+
+			// Calculate projection matrix
+			Matrix4 projectionMatrix = new Matrix4();
+			projectionMatrix.scale(client.getScale(), client.getScale(), 1);
+			projectionMatrix.multMatrix(makeProjectionMatrix(viewportWidth, viewportHeight, 50));
+			projectionMatrix.rotate((float) (Math.PI - pitch * Perspective.UNIT), -1, 0, 0);
+			projectionMatrix.rotate((float) (yaw * Perspective.UNIT), 0, 1, 0);
+			projectionMatrix.translate(-client.getCameraX2(), -client.getCameraY2(), -client.getCameraZ2());
+			gl.glUniformMatrix4fv(uniProjectionMatrix, 1, false, projectionMatrix.getMatrix(), 0);
+
+			// Bind samplers to texture units
+			gl.glUniform1i(uniTextures, 1); // texture sampler array is bound to TEXTURE1
+
+			// Bind uniforms
+			gl.glUniformBlockBinding(glProgram, uniBlockMain, 0);
+			gl.glUniform2fv(uniTextureOffsets, 128, textureOffsets, 0);
+
+			// Bind vertex and UV buffers
+			gl.glBindVertexArray(vaoHandle);
 
 			gl.glEnableVertexAttribArray(0);
 			gl.glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -1248,6 +1240,14 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			// Clear scene
 			gl.glClearColor((sky >> 16 & 0xFF) / 255f, (sky >> 8 & 0xFF) / 255f, (sky & 0xFF) / 255f, 1f);
 			gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+
+			// We just allow the GL to do face culling. Note this requires the priority renderer
+			// to have logic to disregard culled faces in the priority depth testing.
+			gl.glEnable(gl.GL_CULL_FACE);
+
+			// Enable blending for alpha
+			gl.glEnable(gl.GL_BLEND);
+			gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
 
 			gl.glDrawArrays(gl.GL_TRIANGLES, 0, targetBufferOffset);
 
