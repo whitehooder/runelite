@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.plugins.gpu.config.ShadowAntiAliasing;
+import net.runelite.client.plugins.gpu.config.ShadowResolution;
 import net.runelite.client.plugins.gpu.template.Template;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -59,6 +61,14 @@ public class ShaderTest
 				if ("version_header".equals(key))
 				{
 					return GpuPlugin.WINDOWS_VERSION_HEADER;
+				}
+				if ("GENERATED_SHADOW_LOOKUP".equals(key))
+				{
+					return GpuPlugin.generateShadowLookupFunction(key,
+						ShadowAntiAliasing.PCF_21x21,
+						ShadowResolution.RES_4096x4096,
+						-8,
+						7);
 				}
 				return null;
 			}),
